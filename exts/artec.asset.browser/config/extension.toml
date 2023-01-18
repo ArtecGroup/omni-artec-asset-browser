@@ -1,39 +1,67 @@
 [package]
-# Semantic Versioning is used: https://semver.org/
+# Semantic Versionning is used: https://semver.org/
 version = "1.0.0"
 
-# The title and description fields are primarily for displaying extension info in UI
-title = "Simple UI Extension Template"
-description="The simplest python extension example. Use it as a starting point for your extensions."
+# Lists people or organizations that are considered the "authors" of the package.
+authors = ["Artec"]
 
-# Path (relative to the root) or content of readme markdown file for UI.
-readme  = "docs/README.md"
+# The title and description fields are primarly for displaying extension info in UI
+title = "Browser of Models on Artec Cloud"
+description="omni kit browser artec cloud models extension."
 
 # URL of the extension source repository.
 repository = ""
 
-# One of categories for UI.
-category = "Example"
-
 # Keywords for the extension
-keywords = ["kit", "example"]
+keywords = ['browser', 'asset', 'model', 'artec', 'cloud']
 
-# Icon to show in the extension manager
+# Location of change log file in target (final) folder of extension, relative to the root.
+# More info on writing changelog: https://keepachangelog.com/en/1.0.0/
+changelog="docs/CHANGELOG.rst"
+
+category = "Rendering"
+readme  = "docs/README.md"
+preview_image = "data/preview.png"
 icon = "data/icon.png"
 
-# Preview to show in the extension manager
-preview_image = "data/preview.png"
-
-# Use omni.ui to build simple UI
 [dependencies]
-"omni.kit.uiapp" = {}
+"omni.kit.browser.core" = {}
+"omni.services.browser.asset" = {}
+"omni.usd" = {}
+"omni.services.client" = {}
+"omni.kit.window.content_browser" = { optional=true }
+"omni.kit.window.filepicker" = {}
 
 # Main python module this extension provides, it will be publicly available as "import artec.asset.browser".
 [[python.module]]
 name = "artec.asset.browser"
 
+[settings]
+exts."artec.asset.browser".provider = "local://"
+exts."artec.asset.browser".showCategory = ""
+exts."artec.asset.browser".navigationAfterDownload = true
+exts."artec.asset.browser".pageSize = 25
+exts."artec.asset.browser".hoverWindow = false
+exts."artec.asset.browser".singleProvider = true
+exts."artec.asset.browser".appSettings = "/persistent/app/asset_store"
+exts."artec.asset.browser".autoScroll = true
+
 [[test]]
-# Extra dependencies only to be used during test run
 dependencies = [
-    "omni.kit.ui_test" # UI testing extension
+    "omni.kit.renderer.core",
+    "omni.kit.renderer.capture",
+    "omni.services.browser.asset",
+    "omni.kit.browser.asset_provider.s3"
+]
+
+args = [
+    "--no-window",
+    "--/app/window/dpiScaleOverride=1.0",
+    "--/app/window/scaleToMonitor=false",
+]
+
+stdoutFailPatterns.exclude = [
+    "*gpu.foundation.plugin'>: Failed to load texture*", # Leak
+    "*[gpu.foundation.plugin] Failed to load texture*",
+    "*[gpu.foundation.plugin] Failed to read texture file*",
 ]
