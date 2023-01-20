@@ -3,15 +3,15 @@ import omni.kit.ui
 
 from .window import ArtecCloudWindow, ARTEC_CLOUD_WINDOW_NAME
 
-ARTEC_CLOUD_BROWSER_MENU_PATH = "Window/Browsers/" + ARTEC_CLOUD_WINDOW_NAME
+ASSET_STORE_BROWSER_MENU_PATH = "Window/Browsers/" + ARTEC_CLOUD_WINDOW_NAME
 _extension_instance = None
 
 
-class ArtecAssetBrowserExtension(omni.ext.IExt):
+class AssetStoreExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
         self._window = None
         self._menu = omni.kit.ui.get_editor_menu().add_item(
-            ARTEC_CLOUD_BROWSER_MENU_PATH, self._on_click, toggle=True, value=True
+            ASSET_STORE_BROWSER_MENU_PATH, self._on_click, toggle=True, value=True
         )
 
         self._window = ArtecCloudWindow()
@@ -32,7 +32,7 @@ class ArtecAssetBrowserExtension(omni.ext.IExt):
         self._window.visible = not self._window.visible
 
     def _on_visibility_changed(self, visible):
-        omni.kit.ui.get_editor_menu().set_value(ARTEC_CLOUD_BROWSER_MENU_PATH, visible)
+        omni.kit.ui.get_editor_menu().set_value(ASSET_STORE_BROWSER_MENU_PATH, visible)
 
 
 def get_instance():
