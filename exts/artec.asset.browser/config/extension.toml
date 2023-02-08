@@ -46,6 +46,19 @@ exts."artec.asset.browser".singleProvider = true
 exts."artec.asset.browser".appSettings = "/persistent/app/asset_store"
 exts."artec.asset.browser".autoScroll = true
 
+exts."artec.asset.browser".enable = true
+exts."artec.asset.browser".providerId = "ArtecCLoud"
+exts."artec.asset.browser".keepOriginalPageSize = true
+exts."artec.asset.browser".maxCountPerPage = 24
+exts."artec.asset.browser".minThumbnailSize = 256
+exts."artec.asset.browser".modelsUrl = "https://cloud.artec3d.local/api/omni/1.0/projects"
+
+exts."artec.asset.browser".searchUrl = "https://api.sketchfab.com/v3/search" # FIXME: remove me
+exts."artec.asset.browser".authorizeUrl = "https://sketchfab.com/oauth2/authorize/" # FIXME: remove me
+exts."artec.asset.browser".accessTokenUrl = "https://sketchfab.com/oauth2/token/" # FIXME: remove me
+exts."artec.asset.browser".clientId = "eQcrihd32CeYmF9evsYEGXZr8vynHA82DW7SzJw2" # FIXME: remove me
+exts."artec.asset.browser".clientSecret = "" # FIXME: remove me
+
 [[test]]
 dependencies = [
     "omni.kit.renderer.core",
