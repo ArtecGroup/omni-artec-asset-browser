@@ -45,7 +45,3 @@ class ArtecAssetBrowserExtension(omni.ext.IExt):
 
     def _on_visibility_changed(self, visible):
         omni.kit.ui.get_editor_menu().set_value(ARTEC_CLOUD_BROWSER_MENU_PATH, visible)
-
-
-def get_instance():
-    return _extension_instance

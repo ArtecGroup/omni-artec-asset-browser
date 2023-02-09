@@ -51,7 +51,10 @@ exts."artec.asset.browser".providerId = "ArtecCLoud"
 exts."artec.asset.browser".keepOriginalPageSize = true
 exts."artec.asset.browser".maxCountPerPage = 24
 exts."artec.asset.browser".minThumbnailSize = 256
-exts."artec.asset.browser".modelsUrl = "https://cloud.artec3d.local/api/omni/1.0/projects"
+exts."artec.asset.browser".modelsUrl = "http://cloud.artec3d.local/api/omni/1.0/projects"
+exts."artec.asset.browser".cloudSearchUrl = "http://cloud.artec3d.local/api/omni/1.0/projects.json"
+exts."artec.asset.browser".cloudAuthToken = "6175219139ea0a472d11ce46da2edecf"
+
 
 exts."artec.asset.browser".searchUrl = "https://api.sketchfab.com/v3/search" # FIXME: remove me
 exts."artec.asset.browser".authorizeUrl = "https://sketchfab.com/oauth2/authorize/" # FIXME: remove me

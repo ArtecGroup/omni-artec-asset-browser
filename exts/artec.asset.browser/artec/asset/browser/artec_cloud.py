@@ -55,7 +55,8 @@ class ArtecCLoudAssetProvider(BaseAssetStore):
         self._keep_page_size = settings.get_as_bool(SETTING_ROOT + "keepOriginalPageSize")
         self._max_count_per_page = settings.get_as_int(SETTING_ROOT + "maxCountPerPage")
         self._min_thumbnail_size = settings.get_as_int(SETTING_ROOT + "minThumbnailSize")
-        self._search_url = settings.get_as_string(SETTING_ROOT + "searchUrl")
+        self._search_url = settings.get_as_string(SETTING_ROOT + "cloudSearchUrl") # ARTEC_CLOUD
+        self._auth_token = settings.get_as_string(SETTING_ROOT + "cloudAuthToken") # ARTEC_CLOUD
         self._models_url = settings.get_as_string(SETTING_ROOT + "modelsUrl")
         self._authorize_url = settings.get_as_string(SETTING_ROOT + "authorizeUrl")
         self._access_token_url = settings.get_as_string(SETTING_ROOT + "accessTokenUrl") # INFO: from constants
@@ -99,8 +100,7 @@ class ArtecCLoudAssetProvider(BaseAssetStore):
 
         params = {
             "type": "models",
-            "q": "",
-            "downloadable": "true",
+            "auth_token": self._auth_token,
             "cursor": (search_criteria.page.number - 1) * required_count,
             "sort_by": "-likeCount"
         }
@@ -148,22 +148,20 @@ class ArtecCLoudAssetProvider(BaseAssetStore):
             List[AssetModel]: List of searched assets.
             bool: True means more results to be searched. False means end of search.
         """
-        to_continue = True
+        to_continue = False
         items = []
         async with aiohttp.ClientSession() as session:
             async with session.get(self._search_url, params=params) as response:
                 results = await response.json()
-                cursors = results.get("cursors", {})
+                # cursors = results.get("cursors", {})
                 # If no more resutls
-                to_continue = cursors["next"] is not None
-                items = results.get("results", [])
+                # to_continue = cursors["next"] is not None
+                items = results.get("projects", [])
 
         assets: List[AssetModel] = []
+        
         for item in items:
-            item_categories = [x.get("name", "") for x in item.get("categories", [])]
-            item_tags = [x.get("name", "") for x in item.get("tags", [])]
-            item_thumbnails = [x for x in item.get("thumbnails", {}).get("images", [])]
-            item_thumbnail = self._pick_most_appropriate_thumbnail(item_thumbnails)
+            item_thumbnail = item.get('preview_presigned_url')
             if item.get("isDownloadable"):
                 download_url = f"{self._models_url}/{item.get('uid')}/download"
             else:
@@ -171,14 +169,14 @@ class ArtecCLoudAssetProvider(BaseAssetStore):
             if item_thumbnail is not None:
                 assets.append(
                     AssetModel(
-                        identifier=item.get("uid"),
-                        name="test" + item.get("name"),
+                        identifier=item.get("id"),
+                        name=item.get("name"),
                         version="",
-                        published_at=item.get("publishedAt"),
-                        categories=item_categories,
-                        tags=item_tags,
+                        published_at=item.get("created_at"),
+                        categories=[], # item_categories,
+                        tags=[], # item_tags,
                         vendor=self._provider_id,
-                        download_url=download_url,
+                        download_url="", # download_url,
                         product_url=item.get("viewerUrl", ""),
                         # price=0.0,  # SketchFab does not display price for assets when using the search API.
                         thumbnail=item_thumbnail, # URL 
