@@ -3,7 +3,7 @@ from omni import ui
 from pathlib import Path
 
 CURRENT_PATH = Path(__file__).parent
-ICON_PATH = CURRENT_PATH.parent.parent.parent.parent.joinpath("icons")
+ICON_PATH = CURRENT_PATH.parent.parent.parent.joinpath("icons")
 
 
 class Colors:
