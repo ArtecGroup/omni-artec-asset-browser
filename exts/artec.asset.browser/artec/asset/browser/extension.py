@@ -3,7 +3,7 @@ import omni.kit.ui
 
 from .window import ArtecCloudWindow, ARTEC_CLOUD_WINDOW_NAME
 from .artec_cloud import ArtecCLoudAssetProvider
-from omni.services.browser.asset import get_instance as get_asset_services
+from artec.services.browser.asset import get_instance as get_asset_services
 
 ARTEC_CLOUD_BROWSER_MENU_PATH = "Window/Browsers/" + ARTEC_CLOUD_WINDOW_NAME
 _extension_instance = None

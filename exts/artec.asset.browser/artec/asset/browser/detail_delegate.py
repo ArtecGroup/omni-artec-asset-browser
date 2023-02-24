@@ -299,11 +299,12 @@ class AssetDetailDelegate(DetailDelegate):
         with container:
             ui.Rectangle(height=0, style_type_name_override="GridView.Item.Frame")
             with ui.ZStack():
+                # TODO: fix hover
                 self._hover_background[item] = ui.Rectangle(
                     visible=False, style_type_name_override="GridView.Item.Hover.Background"
                 )
                 with ui.HStack(height=LABEL_HEIGHT):
-                    label = self._build_name_and_price(item)
+                    label = self._build_name_and_owner(item)
                     self._build_tips_at_right(item)
                 if not self._show_hover_window:
                     self._build_tips_at_center(item)
@@ -329,6 +330,7 @@ class AssetDetailDelegate(DetailDelegate):
         with self._hover_center_container[item]:
             ui.Rectangle(style_type_name_override="GridView.Item.Hover.Background")
             self._hover_center_label[item] = ui.Label(
+                # TODO: use download link in tips ?
                 item.tips,
                 name=item.asset_type,
                 alignment=ui.Alignment.CENTER,
@@ -337,7 +339,7 @@ class AssetDetailDelegate(DetailDelegate):
             if isinstance(item, MoreDetailItem):
                 self.more_item_center_tips = self._hover_center_label[item]
 
-    def _build_name_and_price(self, item: AssetDetailItem) -> ui.Label:
+    def _build_name_and_owner(self, item: AssetDetailItem) -> ui.Label:
         text = self.get_label(item)
 
         with ui.VStack(height=LABEL_HEIGHT):
@@ -351,15 +353,7 @@ class AssetDetailDelegate(DetailDelegate):
             )
             if isinstance(item, AssetDetailItem):
                 with ui.HStack():
-                    # Price
-                    if item.asset_model["price"] == 0:
-                        ui.Label("Free", elided_text=True, style_type_name_override="GridView.Item.Free")
-                    else:
-                        ui.Label(
-                            "$" + str(item.asset_model["price"]),
-                            elided_text=True,
-                            style_type_name_override="GridView.Item.Price",
-                        )
+                    ui.Label("by " + item.asset_model['user'], elided_text=True, style_type_name_override="GridView.Item.User")
                     ui.Spacer()
             else:
                 ui.Label("")

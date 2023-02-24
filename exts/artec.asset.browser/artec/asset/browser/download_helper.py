@@ -4,7 +4,7 @@ import carb
 import carb.tokens
 import json
 import omni.client
-from omni.services.browser.asset import AssetModel
+from artec.services.browser.asset import AssetModel
 
 
 DOWNLOAD_RESULT_FILE = "asset_store_downloads.json"

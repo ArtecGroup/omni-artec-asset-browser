@@ -1,8 +1,8 @@
 import re
 import omni.client
-from omni.services.browser.asset import AssetModel
+from artec.services.browser.asset import AssetModel
 from omni.kit.browser.core import DetailItem
-from omni.services.browser.asset import get_instance as get_asset_services
+from artec.services.browser.asset import get_instance as get_asset_services
 
 from ..style import ICON_PATH
 from ..download_helper import DownloadHelper
@@ -38,6 +38,7 @@ class AssetDetailItem(DetailItem):
             thumbnail=asset_model["thumbnail"]
         )
         self.uid = asset_model["identifier"]
+        self.user = asset_model["user"]
         self.asset_model = asset_model
 
         self._get_type()

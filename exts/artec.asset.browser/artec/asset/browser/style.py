@@ -44,7 +44,7 @@ ARTEC_CLOUD_BROWSER_STYLE = {
     "GridView.Item.Tips.Text::ExternalLink": {"color": 0xFFF6A66B},
     "GridView.Item.Tips.Text::Normal": {"color": 0xFFCCCCCC},
     "GridView.Item.Price": {"color": Colors.Selected, "font_size": 12},
-    "GridView.Item.Free": {"color": 0xFF328C6C, "font_size": 12},
+    "GridView.Item.User": {"color": 0xFF328C6C, "font_size": 12},
     "GridView.Item.Frame": {"color": 0xFFFF0000},
     "GridView.Item.Download": {
         "background_color": 0xFF2A2825,

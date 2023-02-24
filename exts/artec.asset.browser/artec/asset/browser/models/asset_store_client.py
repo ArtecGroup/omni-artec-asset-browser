@@ -5,7 +5,7 @@ import carb.settings
 from omni.services.client import AsyncClient
 from omni.services.core import main
 
-from omni.services.browser.asset import AssetModel
+from artec.services.browser.asset import AssetModel
 
 
 class AssetStoreClient:
@@ -19,7 +19,7 @@ class AssetStoreClient:
         self._url = url
         self._assets: List[AssetModel] = []
 
-        api_version = carb.settings.get_settings_interface().get("exts/omni.services.browser.asset/api_version")
+        api_version = carb.settings.get_settings_interface().get("exts/artec.services.browser.asset/api_version")
         self._client = AsyncClient(f"{self._url}/{api_version}", app=main.get_app())
 
     def destroy(self):

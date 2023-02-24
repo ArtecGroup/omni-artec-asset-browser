@@ -9,8 +9,8 @@ import omni.client
 
 from omni.kit.browser.core import AbstractBrowserModel, CollectionItem, CategoryItem, DetailItem
 from typing import Dict, List, Optional, Union, Callable
-from omni.services.browser.asset import AssetModel, ProviderModel, BaseAssetStore
-from omni.services.browser.asset import get_instance as get_asset_services
+from artec.services.browser.asset import AssetModel, ProviderModel, BaseAssetStore
+from artec.services.browser.asset import get_instance as get_asset_services
 from pxr import Tf
 
 from .asset_store_client import AssetStoreClient
@@ -416,6 +416,7 @@ class AssetStoreModel(AbstractBrowserModel):
             product_url=asset.get("product_url", ""),
             price=asset.get("price", 0.0),
             thumbnail=asset.get("thumbnail", ""),
+            user=asset.get("user", ""),
         )
         results = await asset_store.download(asset_model, dest_url, on_progress_fn=on_progress_fn, timeout=600)
         if results.get("status") != omni.client.Result.OK:

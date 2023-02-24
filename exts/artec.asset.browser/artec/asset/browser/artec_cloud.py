@@ -17,7 +17,7 @@ import aiohttp
 import asyncio
 import omni.client
 
-from omni.services.browser.asset import BaseAssetStore, AssetModel, SearchCriteria, ProviderModel
+from artec.services.browser.asset import BaseAssetStore, AssetModel, SearchCriteria, ProviderModel
 from pathlib import Path
 
 SETTING_ROOT = "/exts/artec.asset.browser/"
@@ -162,6 +162,7 @@ class ArtecCLoudAssetProvider(BaseAssetStore):
         
         for item in items:
             item_thumbnail = item.get('preview_presigned_url')
+            # TODO: Download url goes here
             if item.get("isDownloadable"):
                 download_url = f"{self._models_url}/{item.get('uid')}/download"
             else:
@@ -177,9 +178,9 @@ class ArtecCLoudAssetProvider(BaseAssetStore):
                         tags=[], # item_tags,
                         vendor=self._provider_id,
                         download_url="", # download_url,
-                        product_url=item.get("viewerUrl", ""),
-                        # price=0.0,  # SketchFab does not display price for assets when using the search API.
+                        product_url=item.get("viewer_url", ""),
                         thumbnail=item_thumbnail, # URL 
+                        user=item.get("user"),
                     )
                 )
 
