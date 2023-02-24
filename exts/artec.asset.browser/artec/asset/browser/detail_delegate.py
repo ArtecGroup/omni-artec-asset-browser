@@ -20,7 +20,7 @@ from functools import partial
 import webbrowser
 
 CURRENT_PATH = Path(__file__).parent
-ICON_PATH = CURRENT_PATH.parent.parent.parent.parent.joinpath("icons")
+ICON_PATH = CURRENT_PATH.parent.parent.parent.joinpath("icons")
 
 SETTING_HOVER_WINDOW = "/exts/omni.kit.browser.asset_store/hoverWindow"
 SETTING_MY_ASSET_FOLDERS = "/persistent/exts/omni.kit.browser.asset_provider.local/folders"
@@ -403,10 +403,7 @@ class AssetDetailDelegate(DetailDelegate):
         """Get item tips image url and text"""
         if isinstance(item, AssetDetailItem):
             if item.asset_type == AssetType.EXTERNAL_LINK:
-                if item.asset_model["price"] == 0:
-                    return (f"{ICON_PATH}/External_link_green.svg", 16)
-                else:
-                    return (f"{ICON_PATH}/External_link_dark.svg", 16)
+                return (f"{ICON_PATH}/External_link_green.svg", 16)
             elif item.asset_type == AssetType.DOWNLOAD:
                 return (f"{ICON_PATH}/Download_dark.svg", 20)
             elif item.asset_type == AssetType.NORMAL:
@@ -420,10 +417,7 @@ class AssetDetailDelegate(DetailDelegate):
         """Get item vendor image url"""
         if isinstance(item, AssetDetailItem):
             vendor_name = item.asset_model["vendor"]
-            if vendor_name in self._model.providers:
-                return self._model.providers[vendor_name]["icon"]
-            else:
-                return ""
+            return self._model.providers[vendor_name]["icon"]
         else:
             return ""
 
