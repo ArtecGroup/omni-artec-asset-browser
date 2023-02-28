@@ -26,7 +26,7 @@ icon = "data/icon.png"
 
 [dependencies]
 "omni.kit.browser.core" = {}
-"omni.services.browser.asset" = {}
+"artec.services.browser.asset" = {}
 "omni.usd" = {}
 "omni.services.client" = {}
 "omni.kit.window.content_browser" = { optional=true }
