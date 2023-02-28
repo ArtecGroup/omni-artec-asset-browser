@@ -1,0 +1,27 @@
+[package]
+authors = ["NVIDIA"]
+category = "services"
+changelog = "docs/CHANGELOG.md"
+description = "Artec asset browser service"
+icon = "data/icon.png"
+keywords = ["kit", "service", "browsers", "assets"]
+preview_image = "data/preview.png"
+readme = "docs/README.md"
+repository = ""
+title = "Omniverse Artec Asset Service"
+toggleable = false
+version = "1.0.0"
+
+[dependencies]
+"omni.services.core" = {}
+"omni.services.facilities.base" = {}
+"omni.client" = {}
+
+[[python.module]]
+name = "artec.services.browser.asset"
+
+[settings]
+exts."artec.services.browser.asset".api_version = "v2"
+
+[[test]]
+dependencies = ["omni.services.client", "omni.client"]

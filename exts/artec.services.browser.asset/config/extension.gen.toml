@@ -1,0 +1,6 @@
+[package]
+[package.publish]
+date = 1661864119
+kitVersion = "104.0+release.91154.beb7c507.tc"
+buildNumber = "101.1.0+master.848.3bbd8284.tc"
+repoName = "kit-browsers"

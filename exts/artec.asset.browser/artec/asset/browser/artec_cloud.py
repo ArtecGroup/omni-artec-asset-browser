@@ -177,7 +177,7 @@ class ArtecCLoudAssetProvider(BaseAssetStore):
                         categories=[], # item_categories,
                         tags=[], # item_tags,
                         vendor=self._provider_id,
-                        download_url="", # download_url,
+                        download_url=item.get("download_url", ""),
                         product_url=item.get("viewer_url", ""),
                         thumbnail=item_thumbnail, # URL 
                         user=item.get("user"),
