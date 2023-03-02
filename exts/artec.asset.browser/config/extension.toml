@@ -19,10 +19,10 @@ keywords = ['browser', 'asset', 'model', 'artec', 'cloud']
 # More info on writing changelog: https://keepachangelog.com/en/1.0.0/
 changelog="docs/CHANGELOG.rst"
 
-category = "Rendering"
+category = "services"
 readme  = "docs/README.md"
 preview_image = "data/preview.png"
-icon = "data/icon.png"
+icon = "data/artec_cloud.png"
 
 [dependencies]
 "omni.kit.browser.core" = {}
