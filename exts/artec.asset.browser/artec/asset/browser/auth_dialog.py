@@ -107,7 +107,7 @@ class AuthDialog:
 
     def _load_default_settings(self, provider: str):
         settings = carb.settings.get_settings()
-        default_settings = settings.get_as_string("/exts/omni.kit.browser.asset_store/appSettings")
+        default_settings = settings.get_as_string("/exts/artec.asset.browser/appSettings")
         username = settings.get_as_string(f"{default_settings}/providers/{provider}/username")
         password = settings.get_as_string(f"{default_settings}/providers/{provider}/password")
         remember = settings.get_as_bool(f"{default_settings}/providers/remember_password")
@@ -118,7 +118,7 @@ class AuthDialog:
 
     def _save_default_settings(self, provider: str):
         settings = carb.settings.get_settings()
-        default_settings = settings.get_as_string("/exts/omni.kit.browser.asset_store/appSettings")
+        default_settings = settings.get_as_string("/exts/artec.asset.browser/appSettings")
         remember = self._remember.model.get_value_as_bool()
         username = self._username.model.get_value_as_string()
         password = self._password.model.get_value_as_string() if remember else ""

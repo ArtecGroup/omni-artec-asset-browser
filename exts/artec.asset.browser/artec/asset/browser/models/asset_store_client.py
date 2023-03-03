@@ -29,14 +29,14 @@ class AssetStoreClient:
         return asyncio.get_event_loop().run_until_complete(self._list_async(category, search_words=search_words))
 
     async def list_categories_async(self):
-        categories = await self._client.assets.categories.get()
+        categories = await self._client.artec_assets.categories.get()
         return categories
 
     async def list_providers_async(self) -> Dict[str, str]:
-        return await self._client.assets.providers.get()
+        return await self._client.artec_assets.providers.get()
 
     async def config_provider_async(self, provider: str) -> None:
-        return await self._client.assets.config.post(vendor=provider)
+        return await self._client.artec_assets.config.post(vendor=provider)
 
     async def _list_async(
         self,
@@ -59,7 +59,7 @@ class AssetStoreClient:
             search_args["filter"] = {"categories": [category]}
 
         to_continue = False
-        result = await self._client.assets.search.post(**search_args)
+        result = await self._client.artec_assets.search.post(**search_args)
         for store in result:
             assets.extend(result[store][0])
             if result[store][1]:

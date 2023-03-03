@@ -10,4 +10,4 @@ class OverviewDelegate(DetailDelegate):
     def on_double_click(self, item: CategoryItem) -> None:
         # Show selected category
         settings = carb.settings.get_settings()
-        settings.set("/exts/omni.kit.browser.asset_store/showCategory", item.url)
+        settings.set("/exts/artec.asset.browser/showCategory", item.url)

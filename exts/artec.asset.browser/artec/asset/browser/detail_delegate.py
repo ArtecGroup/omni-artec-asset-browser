@@ -22,7 +22,7 @@ import webbrowser
 CURRENT_PATH = Path(__file__).parent
 ICON_PATH = CURRENT_PATH.parent.parent.parent.joinpath("icons")
 
-SETTING_HOVER_WINDOW = "/exts/omni.kit.browser.asset_store/hoverWindow"
+SETTING_HOVER_WINDOW = "/exts/artec.asset.browser/hoverWindow"
 SETTING_MY_ASSET_FOLDERS = "/persistent/exts/omni.kit.browser.asset_provider.local/folders"
 SETTING_MY_ASSET_FOLDER_CHANGED = "/exts/omni.kit.browser.asset_provider.local/folderChanged"
 
