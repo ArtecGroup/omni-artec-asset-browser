@@ -13,7 +13,7 @@ from .style import ICON_PATH
 
 
 DEFAULT_THUMBNAIL_PADDING = 5
-SETTING_ROOT = "/exts/omni.kit.browser.asset_store/"
+SETTING_ROOT = "/exts/artec.asset.browser/"
 SETTING_AUTO_SCROLL = SETTING_ROOT + "autoScroll"
 
 
@@ -24,7 +24,7 @@ class ArtecCloudBrowserWidget(BrowserWidget):
         self._filter_menu = None
         self._filter_vendor = None
         self._update_setting = omni.kit.app.SettingChangeSubscription(
-            "/exts/omni.kit.browser.asset_store/showCategory", self._on_show_category_changed
+            "/exts/artec.asset.browser/showCategory", self._on_show_category_changed
         )
 
         self._load_future = None

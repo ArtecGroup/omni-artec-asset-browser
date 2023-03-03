@@ -18,7 +18,7 @@ from .asset_detail_item import AssetDetailItem, MoreDetailItem, SearchingDetailI
 from .main_navigation_item import MainNavigationItem
 from .common_categories import COMMON_CATEGORIES
 
-SETTING_ROOT = "/exts/omni.kit.browser.asset_store/"
+SETTING_ROOT = "/exts/artec.asset.browser/"
 SETTING_PROVIDER_ROOT = SETTING_ROOT + "provider"
 SETTING_PAGE_SIZE = SETTING_ROOT + "pageSize"
 SETTING_SINGLE_PROVIDER = SETTING_ROOT + "singleProvider"
