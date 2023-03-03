@@ -36,7 +36,7 @@ class AssetServiceExtension(omni.ext.IExt):
         settings = carb.settings.get_settings()
         ext_name = ext_id.split("-")[0]
         api_version = settings.get(f"exts/{ext_name}/api_version")
-        self._base_url = f"/{api_version}/assets"
+        self._base_url = f"/{api_version}/artec-assets"
 
         self._asset_store_group = AssetStoreGroupFacility()
 
