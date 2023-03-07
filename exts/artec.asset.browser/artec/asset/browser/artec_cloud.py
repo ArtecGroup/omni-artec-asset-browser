@@ -18,6 +18,7 @@ import asyncio
 import omni.client
 
 from artec.services.browser.asset import BaseAssetStore, AssetModel, SearchCriteria, ProviderModel
+
 from pathlib import Path
 
 SETTING_ROOT = "/exts/artec.asset.browser/"
@@ -56,7 +57,7 @@ class ArtecCloudAssetProvider(BaseAssetStore):
         self._max_count_per_page = settings.get_as_int(SETTING_ROOT + "maxCountPerPage")
         self._min_thumbnail_size = settings.get_as_int(SETTING_ROOT + "minThumbnailSize")
         self._search_url = settings.get_as_string(SETTING_ROOT + "cloudSearchUrl") # ARTEC_CLOUD
-        self._auth_token = settings.get_as_string(SETTING_ROOT + "cloudAuthToken") # ARTEC_CLOUD
+        self._auth_token = None #settings.get_as_string(SETTING_ROOT + "cloudAuthToken") # ARTEC_CLOUD
         self._models_url = settings.get_as_string(SETTING_ROOT + "modelsUrl")
         self._authorize_url = settings.get_as_string(SETTING_ROOT + "authorizeUrl")
         self._access_token_url = settings.get_as_string(SETTING_ROOT + "accessTokenUrl") # INFO: from constants
@@ -69,16 +70,19 @@ class ArtecCloudAssetProvider(BaseAssetStore):
         return ProviderModel(
             name=self._store_id, icon=f"{DATA_PATH}/artec_cloud.png", enable_setting=SETTING_STORE_ENABLE
         )
+    
+    # def set_auth_token(self, auth_token: str): # WIP under review
+    #     self._auth_token = self._auth_params.get('auth_token', None)
 
-    # def authorized(self) -> bool:
-    #     if self._auth_params:
-    #         return self._auth_params.get("access_token", None)
-    #     return False
+    def authorized(self) -> bool: # WIP working
+        if self._auth_params:
+            self._auth_token = self._auth_params.get('auth_token', None)
+            return self._auth_params.get('auth_token', None)
 
-    async def authenticate(self, username: str, password: str):
-        params = {"grant_type": "password", "client_id": self._client_id, "username": username, "password": password}
+    async def authenticate(self, username: str, password: str): # WIP working
+        params = { "user[email]": username, "user[password]": password }
         async with aiohttp.ClientSession() as session:
-            async with session.post(self._access_token_url, params=params) as response:
+            async with session.post(self._authorize_url, params=params) as response:  
                 self._auth_params = await response.json()
 
     def get_access_token(self) -> str:

@@ -11,6 +11,9 @@ from .popup_menu import SortMenu, FilterMenu
 from .models import AssetDetailItem
 from .style import ICON_PATH
 
+from .auth_dialog import AuthDialog
+from functools import partial
+
 
 DEFAULT_THUMBNAIL_PADDING = 5
 SETTING_ROOT = "/exts/artec.asset.browser/"
@@ -19,6 +22,8 @@ SETTING_AUTO_SCROLL = SETTING_ROOT + "autoScroll"
 
 class ArtecCloudBrowserWidget(BrowserWidget):
     def __init__(self, *args, **kwargs):
+        self._auth_dialog = None
+
         super().__init__(*args, **kwargs)
         self._sort_menu = None
         self._filter_menu = None
@@ -52,6 +57,44 @@ class ArtecCloudBrowserWidget(BrowserWidget):
 
         super().destroy()
 
+    def authorized(self) -> bool: # WIP working
+        provider = self._browser_model.get_store('ArtecCloud')
+        return provider.authorized()
+    
+    def _build_results(self): # FIXME use other method
+        self.filter_details(None)
+
+    def trigger_authenticate(self):
+        if not self.authorized():
+            def on_authenticate(self, dialog: AuthDialog):
+                def check_authorized(self, dialog: AuthDialog):
+                    if self.authorized():
+                        self._build_results()
+                        dialog.hide()
+                    else:
+                        dialog.warn_password()
+
+                asyncio.ensure_future(
+                    self._browser_model.authenticate_async(
+                        'ArtecCloud', # use vendor or providerId
+                        dialog.username, 
+                        dialog.password, 
+                        lambda: check_authorized(self, dialog)
+                    )
+                )
+                pass
+
+            def on_cancel(dialog: AuthDialog):
+                dialog.hide()
+
+            if not self._auth_dialog:
+                self._auth_dialog = AuthDialog()
+            self._auth_dialog.show(
+                "ArtecCloud", # use vendor or providerId
+                click_okay_handler=partial(on_authenticate, self),
+                click_cancel_handler=partial(on_cancel),
+            )
+
     def _build_right_panel(self):
         with ui.ZStack():
             self._build_detail_panel()
@@ -62,6 +105,8 @@ class ArtecCloudBrowserWidget(BrowserWidget):
         auto_scroll = carb.settings.get_settings().get(SETTING_AUTO_SCROLL)
         if auto_scroll:
             self._detail_scrolling_frame.set_scroll_y_changed_fn(self._on_detail_scroll_y_changed)
+        
+        self.trigger_authenticate()
 
     def _build_detail_panel(self):
         # Add search bar
