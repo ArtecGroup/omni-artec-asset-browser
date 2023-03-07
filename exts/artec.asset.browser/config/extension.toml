@@ -47,7 +47,7 @@ exts."artec.asset.browser".appSettings = "/persistent/app/asset_store"
 exts."artec.asset.browser".autoScroll = true
 
 exts."artec.asset.browser".enable = true
-exts."artec.asset.browser".providerId = "ArtecCLoud"
+exts."artec.asset.browser".providerId = "ArtecCloud"
 exts."artec.asset.browser".keepOriginalPageSize = true
 exts."artec.asset.browser".maxCountPerPage = 24
 exts."artec.asset.browser".minThumbnailSize = 256

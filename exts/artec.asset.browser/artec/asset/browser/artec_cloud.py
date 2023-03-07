@@ -26,7 +26,7 @@ SETTING_STORE_ENABLE = SETTING_ROOT + "enable"
 CURRENT_PATH = Path(__file__).parent
 DATA_PATH = CURRENT_PATH.parent.parent.parent.joinpath("data")
 
-class ArtecCLoudAssetProvider(BaseAssetStore):
+class ArtecCloudAssetProvider(BaseAssetStore):
     """
     SketchFab asset provider implementation.
 

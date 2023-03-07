@@ -2,7 +2,7 @@ import omni.ext
 import omni.kit.ui
 
 from .window import ArtecCloudWindow, ARTEC_CLOUD_WINDOW_NAME
-from .artec_cloud import ArtecCLoudAssetProvider
+from .artec_cloud import ArtecCloudAssetProvider
 from artec.services.browser.asset import get_instance as get_asset_services
 
 ARTEC_CLOUD_BROWSER_MENU_PATH = "Window/Browsers/" + ARTEC_CLOUD_WINDOW_NAME
@@ -22,7 +22,7 @@ class ArtecAssetBrowserExtension(omni.ext.IExt):
         global _extension_instance
         _extension_instance = self
 
-        self._asset_provider = ArtecCLoudAssetProvider()
+        self._asset_provider = ArtecCloudAssetProvider()
         self._asset_service = get_asset_services()
         self._asset_service.register_store(self._asset_provider)
 
