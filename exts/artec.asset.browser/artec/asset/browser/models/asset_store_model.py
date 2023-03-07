@@ -22,7 +22,7 @@ SETTING_ROOT = "/exts/artec.asset.browser/"
 SETTING_PROVIDER_ROOT = SETTING_ROOT + "provider"
 SETTING_PAGE_SIZE = SETTING_ROOT + "pageSize"
 SETTING_SINGLE_PROVIDER = SETTING_ROOT + "singleProvider"
-CATEGORY_ANY = "All"
+CATEGORY_ANY = "All projects"
 
 
 class AssetStoreModel(AbstractBrowserModel):
