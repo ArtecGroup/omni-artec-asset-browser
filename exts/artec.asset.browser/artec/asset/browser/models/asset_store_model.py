@@ -31,6 +31,7 @@ class AssetStoreModel(AbstractBrowserModel):
     """
 
     def __init__(self):
+        self.artec_cloud_provider_id = 'ArtecCloud'
         super().__init__(always_realod_detail_items=True)
 
         # Dummy collection item. Not displayed, but required for browser model
@@ -82,6 +83,9 @@ class AssetStoreModel(AbstractBrowserModel):
         if asset_services:
             return asset_services.get_store(vendor)
         return None
+
+    def artec_cloud_provider(self) -> BaseAssetStore:
+        return self.get_store(self.artec_cloud_provider_id)
 
     def get_collection_items(self) -> List[CollectionItem]:
         """Override to get list of collection items"""

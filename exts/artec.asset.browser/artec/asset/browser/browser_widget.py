@@ -58,7 +58,7 @@ class ArtecCloudBrowserWidget(BrowserWidget):
         super().destroy()
 
     def authorized(self) -> bool: # WIP working
-        provider = self._browser_model.get_store('ArtecCloud')
+        provider = self._browser_model.artec_cloud_provider()
         return provider.authorized()
     
     def _build_results(self): # FIXME use other method
@@ -76,7 +76,7 @@ class ArtecCloudBrowserWidget(BrowserWidget):
 
                 asyncio.ensure_future(
                     self._browser_model.authenticate_async(
-                        'ArtecCloud', # use vendor or providerId
+                        self._browser_model.artec_cloud_provider_id,
                         dialog.username, 
                         dialog.password, 
                         lambda: check_authorized(self, dialog)
@@ -90,7 +90,7 @@ class ArtecCloudBrowserWidget(BrowserWidget):
             if not self._auth_dialog:
                 self._auth_dialog = AuthDialog()
             self._auth_dialog.show(
-                "ArtecCloud", # use vendor or providerId
+                self._browser_model.artec_cloud_provider_id,
                 click_okay_handler=partial(on_authenticate, self),
                 click_cancel_handler=partial(on_cancel),
             )
