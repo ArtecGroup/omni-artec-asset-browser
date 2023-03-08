@@ -67,7 +67,7 @@ class SortMenu(AbstractPopupMenu):
             void on_sort_changed_fn(sort_field: str, sort_order: str)
     """
 
-    SORT_BY_FIELDS = ["Name", "Date", "Price"]
+    SORT_BY_FIELDS = ["Name", "Date"]
     SORT_BY_ORDERS = ["Ascending", "Descending"]
 
     def __init__(self, on_sort_changed_fn: callable):

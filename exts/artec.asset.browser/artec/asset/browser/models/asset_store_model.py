@@ -178,11 +178,7 @@ class AssetStoreModel(AbstractBrowserModel):
         """Change sort args with new field and order"""
         sort_key = "name"
         if sort_field == "Date":
-            sort_key = "published_at"
-        elif sort_field == "Category":
-            sort_key = "category"
-        elif sort_field == "Price":
-            sort_key = "price"
+            sort_key = "created_at"
 
         self._search_sort_args = [sort_key]
 
@@ -193,12 +189,6 @@ class AssetStoreModel(AbstractBrowserModel):
 
         if sort_field == "Date":
             sort_fn = lambda item: item["published_at"]
-        elif sort_field == "Category":
-            sort_fn = lambda item: item["category"]
-        elif sort_field == "Vendor":
-            sort_fn = lambda item: item["vendor"]
-        elif sort_field == "Price":
-            sort_fn = lambda item: item["price"]
         else:
             # Default, always sort by name
             sort_fn = lambda item: item["name"]

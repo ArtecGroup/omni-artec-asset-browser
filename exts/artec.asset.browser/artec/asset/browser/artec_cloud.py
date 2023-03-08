@@ -106,11 +106,15 @@ class ArtecCloudAssetProvider(BaseAssetStore):
             "type": "models",
             "auth_token": self._auth_token,
             "cursor": (search_criteria.page.number - 1) * required_count,
-            "sort_by": "-likeCount",
+            "sort_field": "",
+            "sort_direction": "",
             "term": "",
             "filters": ""
         }
         
+        if search_criteria.sort:
+            params['sort_field'], params['sort_direction'] = search_criteria.sort
+    
         if search_criteria.keywords:
             params["term"] = " ".join(search_criteria.keywords)
 
