@@ -45,7 +45,7 @@ class ArtecCloudWindow(ui.Window):
                     style=ARTEC_CLOUD_BROWSER_STYLE,
                     always_select_category=False,
                     show_category_splitter=True,
-                    category_width=150,
+                    category_width=180,
                 )
 
         self._widget.show_widgets(collection=True)
