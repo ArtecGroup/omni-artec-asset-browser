@@ -57,7 +57,7 @@ class ArtecCloudAssetProvider(BaseAssetStore):
         self._max_count_per_page = settings.get_as_int(SETTING_ROOT + "maxCountPerPage")
         self._min_thumbnail_size = settings.get_as_int(SETTING_ROOT + "minThumbnailSize")
         self._search_url = settings.get_as_string(SETTING_ROOT + "cloudSearchUrl") # ARTEC_CLOUD
-        self._auth_token = None #settings.get_as_string(SETTING_ROOT + "cloudAuthToken") # ARTEC_CLOUD
+        self._auth_token = None
         self._models_url = settings.get_as_string(SETTING_ROOT + "modelsUrl")
         self._authorize_url = settings.get_as_string(SETTING_ROOT + "authorizeUrl")
         self._access_token_url = settings.get_as_string(SETTING_ROOT + "accessTokenUrl") # INFO: from constants
@@ -106,26 +106,18 @@ class ArtecCloudAssetProvider(BaseAssetStore):
             "type": "models",
             "auth_token": self._auth_token,
             "cursor": (search_criteria.page.number - 1) * required_count,
-            "sort_by": "-likeCount"
+            "sort_by": "-likeCount",
+            "term": "",
+            "filters": ""
         }
+        
         if search_criteria.keywords:
-            params["q"] = " ".join(search_criteria.keywords)
+            params["term"] = " ".join(search_criteria.keywords)
 
         if search_criteria.filter.categories:
             category = self._pick_category(categories=search_criteria.filter.categories)
             if category:
-                if params["q"] == "":
-                    params["q"] = category.lower()
-                else:
-                    params["q"] += f" {category.lower()}"
-
-        # if search_criteria.sort and len(search_criteria.sort) >= 2:
-        #     sort_field, sort_order = search_criteria.sort
-            # # Add other properties if SketchFab supports more sorting options in the future.
-            # if sort_field in ["published_at"]:
-            #     params["sort_by"] = sort_field
-            #     if sort_order.lower() == "desc":
-            #         params["sort_by"] = f"-likeCount"
+                params["filters"] = category.lower().replace(" ", "_")
 
         # The SketchFab API limits the number of search results per page to at most 24
         to_continue = True
@@ -165,6 +157,7 @@ class ArtecCloudAssetProvider(BaseAssetStore):
         assets: List[AssetModel] = []
         
         for item in items:
+            item_categories = item.get("categories", [])
             item_thumbnail = item.get('preview_presigned_url')
             # TODO: Download url goes here
             if item.get("isDownloadable"):
@@ -178,7 +171,7 @@ class ArtecCloudAssetProvider(BaseAssetStore):
                         name=item.get("name"),
                         version="",
                         published_at=item.get("created_at"),
-                        categories=[], # item_categories,
+                        categories=item_categories,
                         tags=[], # item_tags,
                         vendor=self._provider_id,
                         download_url=item.get("download_url", ""),
