@@ -115,18 +115,6 @@ class ArtecCloudBrowserWidget(BrowserWidget):
                 self._search_bar = BrowserSearchBar(options_menu=None, subscribe_edit_changed=False)
                 with ui.VStack(width=26):
                     ui.Spacer()
-                    self._filter_button = ui.Button(
-                        image_width=20,
-                        image_height=20,
-                        width=26,
-                        height=26,
-                        name="filter",
-                        clicked_fn=self._trigger_filter_menu,
-                        style_type_name_override="SearchBar.Button",
-                    )
-                    ui.Spacer()
-                with ui.VStack(width=26):
-                    ui.Spacer()
                     self._sort_button = ui.Button(
                         image_width=20,
                         image_height=20,
@@ -216,14 +204,6 @@ class ArtecCloudBrowserWidget(BrowserWidget):
         if self.category_selection:
             self._load_assets(self.category_selection[0], lambda: self._detail_view.model._item_changed(None))
 
-    def _trigger_filter_menu(self) -> None:
-        if self._filter_menu is None:
-            self._filter_menu = FilterMenu(list(self._browser_model.providers.keys()), self._on_filter_changed)
-        else:
-            self._filter_menu.visible = True
-
-        self._filter_menu.position_x = self._sort_button.screen_position_x
-        self._filter_menu.position_y = self._sort_button.screen_position_y + self._sort_button.computed_height
 
     def _on_filter_changed(self, filter_vendor: str) -> None:
         self._browser_model.search_provider = None if filter_vendor == "All" else filter_vendor
