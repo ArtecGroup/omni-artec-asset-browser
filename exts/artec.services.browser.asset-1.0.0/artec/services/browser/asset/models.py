@@ -59,6 +59,9 @@ class AssetModel(pydantic.BaseModel):
     price: float = pydantic.Field(0.0, title="Price", description="Price of the asset in US Dollars")
     thumbnail: str = pydantic.Field(..., title="Thumbnail path", description="Public endpoint for the thumbnail")
     user: str = pydantic.Field(..., title="Asset suer name", description="Name of the user of the asset")
+    fusions: List[dict] = pydantic.Field(
+        ..., title="Fusions", description="Dict of name and download url"
+    )
 
     class Config:
         schema_extra = {
@@ -74,6 +77,7 @@ class AssetModel(pydantic.BaseModel):
                 "product_url": "https://acme.org/products/purchase/astronaut",
                 "price": 10.99,
                 "thumbnail": "https://images.com/thumbnails/256x256/astronaut.png",
+                "fusions": [{"name": "Test", "download_url": "https://images.com/thumbnails/256x256/astronaut.png"}]
             }
         }
 

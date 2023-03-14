@@ -211,9 +211,20 @@ class AssetDetailDelegate(DetailDelegate):
             if show_web or show_collect:
                 self._context_menu = ui.Menu("Asset browser context menu")
                 with self._context_menu:
+                    with ui.Menu("Download"):
+                        if item.asset_model.get("fusions"):
+                            for fusion in item.asset_model.get("fusions"):
+                                ui.MenuItem(
+                                    fusion["name"], triggered_fn=partial(webbrowser.open, fusion["download_url"])
+                                )
+                                ui.Line(alignment=ui.Alignment.BOTTOM, style_type_name_override="MenuSeparator")
+                                ui.Separator()
+
                     if show_web:
-                        ui.MenuItem("Open in Web Browser",
-                                    triggered_fn=partial(webbrowser.open, item.asset_model["product_url"]))
+                        ui.MenuItem(
+                            "Open in Web Browser",
+                            triggered_fn=partial(webbrowser.open, item.asset_model["product_url"]),
+                        )
                     if show_collect:
                         ui.MenuItem("Collect", triggered_fn=self._collect)
                 self._context_menu.show()
@@ -353,7 +364,11 @@ class AssetDetailDelegate(DetailDelegate):
             )
             if isinstance(item, AssetDetailItem):
                 with ui.HStack():
-                    ui.Label("by " + item.asset_model['user'], elided_text=True, style_type_name_override="GridView.Item.User")
+                    ui.Label(
+                        "by " + item.asset_model["user"],
+                        elided_text=True,
+                        style_type_name_override="GridView.Item.User",
+                    )
                     ui.Spacer()
             else:
                 ui.Label("")
@@ -573,9 +588,7 @@ class AssetDetailDelegate(DetailDelegate):
             self._draggable_urls[item.uid] = url
 
     async def _download_thumbnail(self, item: AssetDetailItem, dest_url: str):
-        """ Copies the thumbnail for the given asset to the .thumbs subdir.
-
-        """
+        """Copies the thumbnail for the given asset to the .thumbs subdir."""
         if not (item and dest_url):
             return
         thumbnail = item.asset_model["thumbnail"]
@@ -617,7 +630,7 @@ class AssetDetailDelegate(DetailDelegate):
         for provider, setting in self._model.providers.items():
             if provider == "My Assets":
                 url = url.replace("\\", "/")
-                downloaded_folder = url[:url.rfind("/")]
+                downloaded_folder = url[: url.rfind("/")]
                 my_assets_folders = self._settings.get(SETTING_MY_ASSET_FOLDERS)
                 # Check if download folder already in My Assets
                 if my_assets_folders:

@@ -182,6 +182,7 @@ class ArtecCloudAssetProvider(BaseAssetStore):
                         product_url=item.get("viewer_url", ""),
                         thumbnail=item_thumbnail, # URL 
                         user=item.get("user"),
+                        fusions=item.get("fusions", ""),
                     )
                 )
 
