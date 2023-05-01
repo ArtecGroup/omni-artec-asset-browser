@@ -206,14 +206,15 @@ class AssetDetailDelegate(DetailDelegate):
             if show_web or show_collect:
                 self._context_menu = ui.Menu("Asset browser context menu")
                 with self._context_menu:
-                    with ui.Menu("Download"):
-                        if item.asset_model.get("fusions"):
-                            for fusion in item.asset_model.get("fusions"):
-                                ui.MenuItem(
-                                    fusion["name"], triggered_fn=partial(webbrowser.open, fusion["download_url"])
-                                )
-                                ui.Line(alignment=ui.Alignment.BOTTOM, style_type_name_override="MenuSeparator")
-                                ui.Separator()
+                    # TODO: Comment-out Download context-menu option
+                    # with ui.Menu("Download"):
+                    #     if item.asset_model.get("fusions"):
+                    #         for fusion in item.asset_model.get("fusions"):
+                    #             ui.MenuItem(
+                    #                 fusion["name"], triggered_fn=partial(webbrowser.open, fusion["download_url"])
+                    #             )
+                    #             ui.Line(alignment=ui.Alignment.BOTTOM, style_type_name_override="MenuSeparator")
+                    #             ui.Separator()
 
                     if show_web:
                         ui.MenuItem(
