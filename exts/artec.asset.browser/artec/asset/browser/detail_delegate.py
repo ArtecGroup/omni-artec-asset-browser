@@ -183,13 +183,8 @@ class AssetDetailDelegate(DetailDelegate):
 
     def on_double_click(self, item: AssetDetailItem) -> None:
         if isinstance(item, AssetDetailItem):
-            if item.asset_type == AssetType.EXTERNAL_LINK:
+            if item.asset_type == AssetType.EXTERNAL_LINK or item.asset_type == AssetType.DOWNLOAD:
                 webbrowser.open(item.asset_model["product_url"])
-            elif item.asset_type == AssetType.DOWNLOAD:
-                if item in self._download_progress_bar and self._download_progress_bar[item].visible:
-                    # Already downloading, do nothing
-                    return
-                self._download_asset(item)
             elif item.asset_type == AssetType.NORMAL:
                 return super().on_double_click(item)
         else:

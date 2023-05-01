@@ -22,8 +22,8 @@ class AssetType:
 
 
 ASSET_TIPS = {
-    AssetType.EXTERNAL_LINK: "DOUBLE CLICK FOR\nEXTERNAL LINK",
-    AssetType.DOWNLOAD: "DOUBLE CLICK TO\nDOWNLOAD",
+    AssetType.EXTERNAL_LINK: "DOUBLE CLICK FOR\nEXTERNAL LINK",  # Artec Cloud provides external links
+    AssetType.DOWNLOAD: "DOUBLE CLICK FOR\nEXTERNAL LINK",  # Default action for download type is to open
     AssetType.NORMAL: "DRAG INTO\nVIEWPORT",
     AssetType.UNKNOWN: "",
 }
