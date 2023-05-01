@@ -1,3 +1,3 @@
 # Artec Cloud asset browser
 
-Provides access to Artec Cloud personal models for Omniverse
+Provides access to Artec Cloud models for Omniverse
