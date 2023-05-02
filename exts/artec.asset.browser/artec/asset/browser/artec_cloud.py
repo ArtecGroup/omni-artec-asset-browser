@@ -5,16 +5,14 @@
 # and any modifications thereto.  Any use, reproduction, disclosure or
 # distribution of this software and related documentation without an express
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
+#
+# Forked from SketchFabAssetProvider for asset store
 
-"""SketchFab asset store implementation."""
-
-from typing import Dict, List, Optional, Union, Tuple, Callable
+from typing import Dict, List, Tuple
 import carb
 import carb.settings
 
-import os
 import aiohttp
-import omni.client
 
 from artec.services.browser.asset import BaseAssetStore, AssetModel, SearchCriteria, ProviderModel
 
@@ -25,6 +23,7 @@ SETTING_STORE_ENABLE = SETTING_ROOT + "enable"
 
 CURRENT_PATH = Path(__file__).parent
 DATA_PATH = CURRENT_PATH.parent.parent.parent.joinpath("data")
+
 
 class ArtecCloudAssetProvider(BaseAssetStore):
     def __init__(self) -> None:
@@ -43,15 +42,12 @@ class ArtecCloudAssetProvider(BaseAssetStore):
             name=self._store_id, icon=f"{DATA_PATH}/artec_cloud.png", enable_setting=SETTING_STORE_ENABLE
         )
 
-    # def set_auth_token(self, auth_token: str): # WIP under review
-    #     self._auth_token = self._auth_params.get('auth_token', None)
-
-    def authorized(self) -> bool:  # WIP working
+    def authorized(self) -> bool:
         if self._auth_params:
             self._auth_token = self._auth_params.get("auth_token", None)
             return self._auth_params.get("auth_token", None)
 
-    async def authenticate(self, username: str, password: str):  # WIP working
+    async def authenticate(self, username: str, password: str):
         params = {"user[email]": username, "user[password]": password}
         async with aiohttp.ClientSession() as session:
             async with session.post(self._authorize_url, params=params) as response:
@@ -135,65 +131,6 @@ class ArtecCloudAssetProvider(BaseAssetStore):
 
         to_continue = meta.get("total_count") > meta.get("current_page") * meta.get("per_page")
         return (assets, to_continue)
-
-    async def _download(self, asset: AssetModel, dest_url: str, on_progress_fn: Callable[[float], None] = None) -> Dict:
-        """Downloads an asset from the asset store.
-
-        This function needs to be implemented as part of an implementation of the BaseAssetStore.
-        This function is called by the public `download` function that will wrap this function in a timeout.
-        """
-        ret_value = {"url": None}
-        if not (asset and asset.download_url):
-            ret_value["status"] = omni.client.Result.ERROR_NOT_FOUND
-            return ret_value
-
-        async with aiohttp.ClientSession() as session:
-            headers = {"Authorization": "Bearer %s" % self.get_access_token()}
-            async with session.get(asset.download_url, headers=headers) as response:
-                results = await response.json()
-
-            # Parse downloaded response; see https://sketchfab.com/developers/download-api/downloading-models
-            if "usdz" in results:
-                download_url = results["usdz"].get("url")
-            else:
-                ret_value["status"] = omni.client.Result.ERROR_NOT_FOUND
-                carb.log_error(f"[{asset.name}] Invalid download url: {asset.download_url}!")
-                carb.log_info(f"addtional result: {results}")
-                return ret_value
-
-            content = bytearray()
-            # Download content from the given url
-            downloaded = 0
-            async with session.get(download_url) as response:
-                size = int(response.headers.get("content-length", 0))
-                if size > 0:
-                    async for chunk in response.content.iter_chunked(1024 * 512):
-                        content.extend(chunk)
-                        downloaded += len(chunk)
-                        if on_progress_fn:
-                            on_progress_fn(float(downloaded) / size)
-                else:
-                    if on_progress_fn:
-                        on_progress_fn(0)
-                    content = await response.read()
-                    if on_progress_fn:
-                        on_progress_fn(1)
-
-            if response.ok:
-                # Write to destination
-                filename = os.path.basename(download_url.split("?")[0])
-                dest_url = f"{dest_url}/{filename}"
-                (result, list_entry) = await omni.client.stat_async(dest_url)
-                if result == omni.client.Result.OK:
-                    # If dest file already exists, use asset identifier in filename to different
-                    dest_url = dest_url[:-5] + "_" + str(asset.identifier) + ".usdz"
-                ret_value["status"] = await omni.client.write_file_async(dest_url, content)
-                ret_value["url"] = dest_url
-            else:
-                carb.log_error(f"[{asset.name}] access denied: {download_url}")
-                ret_value["status"] = omni.client.Result.ERROR_ACCESS_DENIED
-
-        return ret_value
 
     def destroy(self):
         self._auth_params = None
