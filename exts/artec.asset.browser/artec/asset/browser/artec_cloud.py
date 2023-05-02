@@ -28,30 +28,17 @@ DATA_PATH = CURRENT_PATH.parent.parent.parent.joinpath("data")
 
 class ArtecCloudAssetProvider(BaseAssetStore):
     def __init__(self) -> None:
-        """
-        Constructor.
-        Returns:
-            None
-
-        """
         settings = carb.settings.get_settings()
         self._provider_id = settings.get_as_string(SETTING_ROOT + "providerId")
         super().__init__(store_id=self._provider_id)
 
-        self._keep_page_size = settings.get_as_bool(SETTING_ROOT + "keepOriginalPageSize")
         self._max_count_per_page = settings.get_as_int(SETTING_ROOT + "maxCountPerPage")
-        self._min_thumbnail_size = settings.get_as_int(SETTING_ROOT + "minThumbnailSize")
-        self._search_url = settings.get_as_string(SETTING_ROOT + "cloudSearchUrl")  # ARTEC_CLOUD
+        self._search_url = settings.get_as_string(SETTING_ROOT + "cloudSearchUrl")
         self._auth_token = None
-        self._models_url = settings.get_as_string(SETTING_ROOT + "modelsUrl")
         self._authorize_url = settings.get_as_string(SETTING_ROOT + "authorizeUrl")
-        self._access_token_url = settings.get_as_string(SETTING_ROOT + "accessTokenUrl")  # INFO: from constants
-        self._client_id = settings.get_as_string(SETTING_ROOT + "clientId")  # INFO: from constants
-        self._client_secret = settings.get_as_string(SETTING_ROOT + "clientSecret")
         self._auth_params = None
 
     def provider(self) -> ProviderModel:
-        """Return provider info"""
         return ProviderModel(
             name=self._store_id, icon=f"{DATA_PATH}/artec_cloud.png", enable_setting=SETTING_STORE_ENABLE
         )
@@ -85,7 +72,7 @@ class ArtecCloudAssetProvider(BaseAssetStore):
             "term": "",
             "filters": "",
             "per_page": self._max_count_per_page,
-            "page": 0
+            "page": 0,
         }
 
         if search_criteria.sort:
@@ -95,12 +82,12 @@ class ArtecCloudAssetProvider(BaseAssetStore):
             params["term"] = " ".join(search_criteria.keywords)
 
         if search_criteria.filter.categories:
-            category = self._pick_category(categories=search_criteria.filter.categories)
+            category = search_criteria.filter.categories[-1]
             if category:
                 params["filters"] = category.lower().replace(" ", "_")
 
         to_continue = True
-        while to_continue:            
+        while to_continue:
             params["page"] += 1
             (page_assets, to_continue) = await self._search_one_page(params)
 
@@ -145,104 +132,15 @@ class ArtecCloudAssetProvider(BaseAssetStore):
                         fusions=item.get("fusions", ""),
                     )
                 )
-        
-        to_continue = meta.get('total_count') > meta.get("current_page") * meta.get("per_page")
+
+        to_continue = meta.get("total_count") > meta.get("current_page") * meta.get("per_page")
         return (assets, to_continue)
 
-    def _sanitize_categories(self, categories: List[str]) -> List[str]:
-        """
-        Sanitize the given list of ``SearchCriteria`` categories.
-
-        Args:
-            categories (List[str]): List of ``SearchCriteria`` categories to sanitize.
-
-        Returns:
-            List[str]: Sanitized category names from the given list of categories.
-
-        """
-        sanitized_categories: List[str] = []
-        for category in categories:
-            if category.startswith("/"):
-                category = category[1:]
-            category_keywords = category.split("/")
-            sanitized_categories.extend(category_keywords)
-        return sanitized_categories
-
-    def _pick_category(self, categories: List[str]) -> Optional[str]:
-        """
-        Pick the most appropriate category from the list of ``SearchCriteria`` categories.
-
-        Args:
-            categories (List[str]): List of ``SearchCriteria`` categories from which to pick the most appropriate
-                category for a search.
-
-        Returns:
-            Optional[str]: The most appropriate category from the given list of ``SearchCriteria`` categories, or
-                ``None`` if no category could be identified.
-
-        """
-        sanitized_categories = self._sanitize_categories(categories=categories)
-        if sanitized_categories:
-            return sanitized_categories[-1]
-        return None
-
-    def _pick_most_appropriate_thumbnail(self, thumbnails: List[Dict[str, Union[str, int]]]) -> Optional[str]:
-        """
-        Pick the most appropriate thumbnail URL from the list of provided image metadata abot the asset.
-
-        Args:
-            thumbnails (): List of image metadata about the asset.
-
-        Returns:
-            Optional[str]: The URL of the image thumbnail to use for the asset, or ``None`` if no suitable thumbnail was
-                found.
-
-        """
-        high_res_thumbnails: List[Dict[str, Union[str, int]]] = []
-        low_res_thumbnails: List[Dict[str, Union[str, int]]] = []
-
-        # Sort the thumbnails in 2 buckets (whether higher resolution than desired, or lower than desired):
-        for thumbnail in thumbnails:
-            thumbnail_width: Optional[int] = thumbnail.get("width")
-            thumbnail_height: Optional[int] = thumbnail.get("height")
-
-            if thumbnail_width is not None and thumbnail_height is not None:
-                if thumbnail_width >= self._min_thumbnail_size and thumbnail_height >= self._min_thumbnail_size:
-                    high_res_thumbnails.append(thumbnail)
-                else:
-                    low_res_thumbnails.append(thumbnail)
-
-        # Pick the most appropriate thumbnail within the list of high-res candidates:
-        if high_res_thumbnails:
-            candidate_thumbnail: Dict[str, Union[str, int]] = high_res_thumbnails[0]
-
-            for thumbnail in high_res_thumbnails:
-                if thumbnail.get("width") < candidate_thumbnail.get("width") and thumbnail.get(
-                    "height"
-                ) < candidate_thumbnail.get("height"):
-                    candidate_thumbnail = thumbnail
-
-            return candidate_thumbnail.get("url")
-
-        # Pick the largest thumbnail within the list of low-res candidates:
-        if low_res_thumbnails:
-            candidate_thumbnail: Dict[str, Union[str, int]] = low_res_thumbnails[0]
-
-            for thumbnail in low_res_thumbnails:
-                if thumbnail.get("width") > candidate_thumbnail.get("width") and thumbnail.get(
-                    "height"
-                ) > candidate_thumbnail.get("height"):
-                    candidate_thumbnail = thumbnail
-
-            return candidate_thumbnail.get("url")
-
-        return None
-
     async def _download(self, asset: AssetModel, dest_url: str, on_progress_fn: Callable[[float], None] = None) -> Dict:
-        """ Downloads an asset from the asset store.
+        """Downloads an asset from the asset store.
 
-            This function needs to be implemented as part of an implementation of the BaseAssetStore.
-            This function is called by the public `download` function that will wrap this function in a timeout.
+        This function needs to be implemented as part of an implementation of the BaseAssetStore.
+        This function is called by the public `download` function that will wrap this function in a timeout.
         """
         ret_value = {"url": None}
         if not (asset and asset.download_url):
