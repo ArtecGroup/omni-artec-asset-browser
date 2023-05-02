@@ -14,7 +14,6 @@ import carb.settings
 
 import os
 import aiohttp
-import asyncio
 import omni.client
 
 from artec.services.browser.asset import BaseAssetStore, AssetModel, SearchCriteria, ProviderModel
@@ -28,20 +27,6 @@ CURRENT_PATH = Path(__file__).parent
 DATA_PATH = CURRENT_PATH.parent.parent.parent.joinpath("data")
 
 class ArtecCloudAssetProvider(BaseAssetStore):
-    """
-    SketchFab asset provider implementation.
-
-    For documentation on the search API, see the online interactive API at:
-    https://docs.sketchfab.com/data-api/v3/index.html#!/search/get_v3_search_type_models
-
-    .. note:
-
-       SketchFab does not return search results in no search query has been provided. In other words, navigating through
-       the pre-defined categories will not display any results from SketchFab, as no search terms have been submitted in
-       that context.
-
-    """
-
     def __init__(self) -> None:
         """
         Constructor.
@@ -56,11 +41,11 @@ class ArtecCloudAssetProvider(BaseAssetStore):
         self._keep_page_size = settings.get_as_bool(SETTING_ROOT + "keepOriginalPageSize")
         self._max_count_per_page = settings.get_as_int(SETTING_ROOT + "maxCountPerPage")
         self._min_thumbnail_size = settings.get_as_int(SETTING_ROOT + "minThumbnailSize")
-        self._search_url = settings.get_as_string(SETTING_ROOT + "cloudSearchUrl") # ARTEC_CLOUD
+        self._search_url = settings.get_as_string(SETTING_ROOT + "cloudSearchUrl")  # ARTEC_CLOUD
         self._auth_token = None
         self._models_url = settings.get_as_string(SETTING_ROOT + "modelsUrl")
         self._authorize_url = settings.get_as_string(SETTING_ROOT + "authorizeUrl")
-        self._access_token_url = settings.get_as_string(SETTING_ROOT + "accessTokenUrl") # INFO: from constants
+        self._access_token_url = settings.get_as_string(SETTING_ROOT + "accessTokenUrl")  # INFO: from constants
         self._client_id = settings.get_as_string(SETTING_ROOT + "clientId")  # INFO: from constants
         self._client_secret = settings.get_as_string(SETTING_ROOT + "clientSecret")
         self._auth_params = None
@@ -70,19 +55,19 @@ class ArtecCloudAssetProvider(BaseAssetStore):
         return ProviderModel(
             name=self._store_id, icon=f"{DATA_PATH}/artec_cloud.png", enable_setting=SETTING_STORE_ENABLE
         )
-    
+
     # def set_auth_token(self, auth_token: str): # WIP under review
     #     self._auth_token = self._auth_params.get('auth_token', None)
 
-    def authorized(self) -> bool: # WIP working
+    def authorized(self) -> bool:  # WIP working
         if self._auth_params:
-            self._auth_token = self._auth_params.get('auth_token', None)
-            return self._auth_params.get('auth_token', None)
+            self._auth_token = self._auth_params.get("auth_token", None)
+            return self._auth_params.get("auth_token", None)
 
-    async def authenticate(self, username: str, password: str): # WIP working
-        params = { "user[email]": username, "user[password]": password }
+    async def authenticate(self, username: str, password: str):  # WIP working
+        params = {"user[email]": username, "user[password]": password}
         async with aiohttp.ClientSession() as session:
-            async with session.post(self._authorize_url, params=params) as response:  
+            async with session.post(self._authorize_url, params=params) as response:
                 self._auth_params = await response.json()
 
     def get_access_token(self) -> str:
@@ -93,28 +78,19 @@ class ArtecCloudAssetProvider(BaseAssetStore):
     async def _search(self, search_criteria: SearchCriteria) -> Tuple[List[AssetModel], bool]:
         assets: List[AssetModel] = []
 
-        if self._keep_page_size:
-            required_count = (
-                search_criteria.page.size
-                if search_criteria.page.size < self._max_count_per_page
-                else self._max_count_per_page
-            )
-        else:
-            required_count = search_criteria.page.size
-
         params = {
-            "type": "models",
             "auth_token": self._auth_token,
-            "cursor": (search_criteria.page.number - 1) * required_count,
             "sort_field": "",
             "sort_direction": "",
             "term": "",
-            "filters": ""
+            "filters": "",
+            "per_page": self._max_count_per_page,
+            "page": 0
         }
-        
+
         if search_criteria.sort:
-            params['sort_field'], params['sort_direction'] = search_criteria.sort
-    
+            params["sort_field"], params["sort_direction"] = search_criteria.sort
+
         if search_criteria.keywords:
             params["term"] = " ".join(search_criteria.keywords)
 
@@ -123,14 +99,12 @@ class ArtecCloudAssetProvider(BaseAssetStore):
             if category:
                 params["filters"] = category.lower().replace(" ", "_")
 
-        # The SketchFab API limits the number of search results per page to at most 24
         to_continue = True
-        while required_count > 0:
-            params["count"] = min(self._max_count_per_page, required_count)
+        while to_continue:            
+            params["page"] += 1
             (page_assets, to_continue) = await self._search_one_page(params)
+
             if page_assets:
-                params["cursor"] += params["count"]
-                required_count -= params["count"]
                 assets.extend(page_assets)
                 if not to_continue:
                     break
@@ -140,34 +114,20 @@ class ArtecCloudAssetProvider(BaseAssetStore):
         return (assets, to_continue)
 
     async def _search_one_page(self, params: Dict) -> Tuple[List[AssetModel], bool]:
-        """
-        Search one page. Max 24 assets.
-        Args:
-            params (Dict): Search parameters.
-        Returns:
-            List[AssetModel]: List of searched assets.
-            bool: True means more results to be searched. False means end of search.
-        """
-        to_continue = False
         items = []
+        meta = {}
+
         async with aiohttp.ClientSession() as session:
             async with session.get(self._search_url, params=params) as response:
                 results = await response.json()
-                # cursors = results.get("cursors", {})
-                # If no more resutls
-                # to_continue = cursors["next"] is not None
                 items = results.get("projects", [])
+                meta = results.get("meta")
 
         assets: List[AssetModel] = []
-        
+
         for item in items:
             item_categories = item.get("categories", [])
-            item_thumbnail = item.get('preview_presigned_url')
-            # TODO: Download url goes here
-            if item.get("isDownloadable"):
-                download_url = f"{self._models_url}/{item.get('uid')}/download"
-            else:
-                download_url = ""
+            item_thumbnail = item.get("preview_presigned_url")
             if item_thumbnail is not None:
                 assets.append(
                     AssetModel(
@@ -176,16 +136,17 @@ class ArtecCloudAssetProvider(BaseAssetStore):
                         version="",
                         published_at=item.get("created_at"),
                         categories=item_categories,
-                        tags=[], # item_tags,
+                        tags=[],
                         vendor=self._provider_id,
                         download_url=item.get("download_url", ""),
                         product_url=item.get("viewer_url", ""),
-                        thumbnail=item_thumbnail, # URL 
+                        thumbnail=item_thumbnail,
                         user=item.get("user"),
                         fusions=item.get("fusions", ""),
                     )
                 )
-
+        
+        to_continue = meta.get('total_count') > meta.get("current_page") * meta.get("per_page")
         return (assets, to_continue)
 
     def _sanitize_categories(self, categories: List[str]) -> List[str]:
