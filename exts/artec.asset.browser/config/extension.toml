@@ -39,11 +39,10 @@ name = "artec.asset.browser"
 [settings]
 exts."artec.asset.browser".provider = "local://"
 exts."artec.asset.browser".showCategory = ""
-exts."artec.asset.browser".navigationAfterDownload = true
 exts."artec.asset.browser".pageSize = 25
 exts."artec.asset.browser".hoverWindow = false
 exts."artec.asset.browser".singleProvider = true
-exts."artec.asset.browser".appSettings = "/persistent/app/asset_store"
+exts."artec.asset.browser".appSettings = "/persistent/app/artec_asset_browser"
 exts."artec.asset.browser".autoScroll = true
 
 exts."artec.asset.browser".enable = true
