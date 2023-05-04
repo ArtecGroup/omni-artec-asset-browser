@@ -1,16 +1,18 @@
-# Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
 #
 # NVIDIA CORPORATION and its licensors retain all intellectual property
 # and proprietary rights in and to this software, related documentation
 # and any modifications thereto.  Any use, reproduction, disclosure or
 # distribution of this software and related documentation without an express
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
+#
+# Forked from BaseAssetStore, AssetStoreGroupFacility from omni.services.browser.asset
+
 import abc
 import asyncio
 import omni.client
 import zipfile
 
-from functools import partial
 from typing import Dict, List, Tuple, Callable
 
 import carb
@@ -21,64 +23,60 @@ from ..models import AssetModel, ProviderModel, SearchCriteria
 
 class BaseAssetStore(Facility, abc.ABC):
     def __init__(self, store_id: str) -> None:
-        """ Asset store
-
-            Args:
-                store_id (str): Unique identifier for this store (for example the name of the 3rd party provider), must match the vendor returned in asset.
-
-        """
         super().__init__()
         self._store_id = store_id
         self._categories = {}
         self._download_progress: Dict[str, float] = {}
 
     def authorized(self) -> bool:
-        """ Override this method to force authentication flow."""
+        """Override this method to force authentication flow."""
         return True
 
     async def authenticate(self, username: str, password: str):
-        """ Override this method to implement authentication method."""
+        """Override this method to implement authentication method."""
         pass
 
     @abc.abstractmethod
     async def _search(self, search_criteria: SearchCriteria) -> Tuple[List[AssetModel], bool]:
-        """ Searches the asset store.
+        """Searches the asset store.
 
-            This function needs to be implemented as part of an implementation of the BaseAssetStore.
-            This function is called by the public `search` function that will wrap this function in a timeout.
+        This function needs to be implemented as part of an implementation of the BaseAssetStore.
+        This function is called by the public `search` function that will wrap this function in a timeout.
         """
         pass
 
     async def search(self, search_criteria: SearchCriteria, search_timeout: int) -> Tuple[List[AssetModel], bool]:
-        """ Search the asset store
+        """Search the asset store
 
-            Will error and stop the search if search_timeout is exceeded
+        Will error and stop the search if search_timeout is exceeded
 
-            Args:
-                search_criteria (SearchCriteria): Dictionary with support search fields.
-                search_timeout (int): Timeout a search after `search_timeout` seconds. (default: 60 seconds)
+        Args:
+            search_criteria (SearchCriteria): Dictionary with support search fields.
+            search_timeout (int): Timeout a search after `search_timeout` seconds. (default: 60 seconds)
 
-            Returns:
-                List of asset models and if more.
+        Returns:
+            List of asset models and if more.
 
-            Raises:
-                asyncio.TimeoutError
+        Raises:
+            asyncio.TimeoutError
 
         """
         return await asyncio.wait_for(self._search(search_criteria), timeout=search_timeout)
 
     async def _download(self, asset: AssetModel, dest_url: str, on_progress_fn: Callable[[float], None] = None) -> Dict:
-        """ Default Download handler using omni.client.
+        """Default Download handler using omni.client.
 
-            This function needs to be implemented as part of an implementation of the BaseAssetStore.
-            This function is called by the public `download` function that will wrap this function in a timeout.
+        This function needs to be implemented as part of an implementation of the BaseAssetStore.
+        This function is called by the public `download` function that will wrap this function in a timeout.
         """
         ret_value = {"url": None}
         if asset and asset.download_url:
             file_name = asset.download_url.split("/")[-1]
             dest_url = f"{dest_url}/{file_name}"
             carb.log_info(f"Download {asset.download_url} to {dest_url}")
-            result = await omni.client.copy_async(asset.download_url, dest_url, behavior=omni.client.CopyBehavior.OVERWRITE)
+            result = await omni.client.copy_async(
+                asset.download_url, dest_url, behavior=omni.client.CopyBehavior.OVERWRITE
+            )
             ret_value["status"] = result
             if result != omni.client.Result.OK:
                 carb.log_error(f"Failed to download {asset.download_url} to {dest_url}")
@@ -97,20 +95,20 @@ class BaseAssetStore(Facility, abc.ABC):
     async def download(
         self, asset: AssetModel, dest_url: str, on_progress_fn: Callable[[float], None] = None, timeout: int = 600
     ) -> Dict:
-        """ Downloads an asset from the asset store.
+        """Downloads an asset from the asset store.
 
-            Args:
-                asset (AssetModel): The asset descriptor.
-                dest_url (str): Url of the destination file.
+        Args:
+            asset (AssetModel): The asset descriptor.
+            dest_url (str): Url of the destination file.
 
-            Kwargs:
-                timeout (int): Timeout a download after this amount of time. (default: 10 mins.)
+        Kwargs:
+            timeout (int): Timeout a download after this amount of time. (default: 10 mins.)
 
-            Returns:
-                Response Dict.
+        Returns:
+            Response Dict.
 
-            Raises:
-                asyncio.TimeoutError
+        Raises:
+            asyncio.TimeoutError
 
         """
         self._download_progress[asset.identifier] = 0
@@ -171,8 +169,7 @@ class AssetStoreGroupFacility(Facility):
         self._stores = {}
 
     def get_registered_stores(self) -> List[str]:
-        """ Return list of all registered stores.
-        """
+        """Return list of all registered stores."""
         return list(self._stores.keys())
 
     def get_store(self, store_name: str) -> BaseAssetStore:
@@ -192,25 +189,12 @@ class AssetStoreGroupFacility(Facility):
         return categories
 
     def config(self, name: str):
-
         if name in self._stores:
             self._stores[name].config()
 
     async def search(
         self, search_criteria: SearchCriteria, stores: List[str] = None, search_timeout: int = 60
     ) -> Dict[str, Tuple[List[AssetModel], bool]]:
-        """ Search for given assets across all providers
-
-            Args:
-                search_criteria (SearchCriteria): Dictionary with support search fields.
-
-            Kwargs:
-                stores (List[str]): List of stores to search. (default: all stores)
-                search_timeout (int): Timeout a search after `search_timeout` seconds. (default: 60 seconds)
-
-            Returns:
-                List of asset models and if more.
-        """
         stores = stores or self.get_registered_stores()
 
         queries: Dict[str, asyncio.Future] = {}
@@ -230,7 +214,6 @@ class AssetStoreGroupFacility(Facility):
         results = {}
         for store, query in queries.items():
             try:
-                r = query.result()
                 results[store] = query.result()
             except Exception as exc:
                 carb.log_info(f"Failed to fetch results for {store}: {type(exc)}, {str(exc)}")

@@ -1,10 +1,13 @@
-# Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
 #
 # NVIDIA CORPORATION and its licensors retain all intellectual property
 # and proprietary rights in and to this software, related documentation
 # and any modifications thereto.  Any use, reproduction, disclosure or
 # distribution of this software and related documentation without an express
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
+#
+# Forked from StaticAssetStore from omni.services.browser.asset
+
 from typing import List, Tuple
 
 from ..models import AssetModel, SearchCriteria
@@ -12,20 +15,11 @@ from .base import BaseAssetStore
 
 
 class StaticAssetStore(BaseAssetStore):
-    """ Static asset store
-
-        The data is hardcoded as a list of AssetModels.
-
-        This store gets instantiated as part of the extension and passed through as a facility to the various endpoints.
-        More advanced implementations can be added and as long as the API of the facility is followed they can be swapped without futher changes needed.
-    """
-
     def __init__(self, store_id, data=List[AssetModel]) -> None:
         super().__init__(store_id=store_id)
         self._data: List[AssetModel] = data
 
     async def _search(self, search_criteria: SearchCriteria) -> Tuple[List[AssetModel], bool]:
-
         keywords = search_criteria.keywords or []
         categories = search_criteria.filter.categories or []
         page = search_criteria.page

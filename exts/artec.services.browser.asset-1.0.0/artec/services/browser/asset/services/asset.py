@@ -1,15 +1,16 @@
-# Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
 #
 # NVIDIA CORPORATION and its licensors retain all intellectual property
 # and proprietary rights in and to this software, related documentation
 # and any modifications thereto.  Any use, reproduction, disclosure or
 # distribution of this software and related documentation without an express
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
+#
+# Forked from SortOrder from omni.services.browser.asset
+
 import asyncio
 from enum import Enum
 from typing import Dict, List, Tuple
-
-import pydantic
 
 from fastapi import Depends
 
@@ -30,7 +31,9 @@ class SortOrder(str, Enum):
 
 
 @router.get("/categories", response_model=Dict[str, Dict])
-async def list_categories(asset_store: AssetStoreGroupFacility = router.get_facility("asset_store"),):
+async def list_categories(
+    asset_store: AssetStoreGroupFacility = router.get_facility("asset_store"),
+):
     await asyncio.sleep(0)
     return asset_store.get_categories()
 
@@ -41,7 +44,9 @@ async def search(search: SearchCriteria, asset_store: AssetStoreGroupFacility = 
 
 
 @router.get("/providers", response_model=Dict[str, ProviderModel])
-async def list_vendors(asset_store: AssetStoreGroupFacility = router.get_facility("asset_store"),):
+async def list_vendors(
+    asset_store: AssetStoreGroupFacility = router.get_facility("asset_store"),
+):
     await asyncio.sleep(0)
     return asset_store.get_providers()
 

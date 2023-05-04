@@ -62,8 +62,6 @@ class TestAssetGroupFacility(omni.kit.test.AsyncTestCaseFailOnLogError):
         self.assertEqual(len(res["NVIDIA"][0]), 17)
 
     async def test_page_items(self):
-        """ Test that, for a page size of 10, 10 items are returned out of a list of 17
-        """
         self._asset_store_group.clear_stores()
         self._asset_store_group.register_store("NVIDIA", JsonFileAssetStore("NVIDIA", f"{ASSETS_DATA_PATH}/s3.json"))
 
@@ -74,8 +72,6 @@ class TestAssetGroupFacility(omni.kit.test.AsyncTestCaseFailOnLogError):
         self.assertEqual(len(res["NVIDIA"][0]), 10)
 
     async def test_page_items_second_page_larger_size(self):
-        """ Test that, for a list of 17 items, if the page size is 10 and the second page is requested 7 items are returned
-        """
         self._asset_store_group.clear_stores()
         self._asset_store_group.register_store("NVIDIA", JsonFileAssetStore("NVIDIA", f"{ASSETS_DATA_PATH}/s3.json"))
 
@@ -86,8 +82,6 @@ class TestAssetGroupFacility(omni.kit.test.AsyncTestCaseFailOnLogError):
         self.assertEqual(len(res["NVIDIA"][0]), 7)
 
     async def test_item_order_by_price_ascending(self):
-        """ Test ordering by price of item in ascending order.
-        """
         self._asset_store_group.clear_stores()
         self._asset_store_group.register_store("DUMMY", DummyAssetStore())
 
@@ -100,8 +94,6 @@ class TestAssetGroupFacility(omni.kit.test.AsyncTestCaseFailOnLogError):
         self.assertEqual(retrieved_prices, [10.99, 12.99, 13.99, 14.99, 15.99])
 
     async def test_item_order_by_price_descending(self):
-        """ Test ordering by price of item by descending. 
-        """
         self._asset_store_group.clear_stores()
         self._asset_store_group.register_store("DUMMY", DummyAssetStore())
 
@@ -116,7 +108,6 @@ class TestAssetGroupFacility(omni.kit.test.AsyncTestCaseFailOnLogError):
 
 class TestDummyAssetStore(omni.kit.test.AsyncTestCaseFailOnLogError):
     async def test_search_no_criteria(self):
-        """Test listing all dummy assets."""
         store = DummyAssetStore()
 
         (result, *_) = await store.search(search_criteria=SearchCriteria(), search_timeout=60)
@@ -142,7 +133,6 @@ class TestDummyAssetStore(omni.kit.test.AsyncTestCaseFailOnLogError):
 
 class TestJsonAssetStore(omni.kit.test.AsyncTestCaseFailOnLogError):
     async def test_search_no_criteria(self):
-        """Test listing all json assets."""
         store = JsonFileAssetStore("NVIDIA", f"{ASSETS_DATA_PATH}/s3.json")
 
         (result, *_) = await store.search(search_criteria=SearchCriteria(), search_timeout=60)

@@ -1,6 +1,14 @@
-from datetime import datetime
-from typing import Dict, List, Optional, Tuple, Callable
-from pathlib import Path
+# Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+#
+# NVIDIA CORPORATION and its licensors retain all intellectual property
+# and proprietary rights in and to this software, related documentation
+# and any modifications thereto.  Any use, reproduction, disclosure or
+# distribution of this software and related documentation without an express
+# license agreement from NVIDIA CORPORATION is strictly prohibited.
+#
+# Forked from AbstractCollector from omni.services.browser.asset
+
+from typing import List, Optional, Tuple, Callable
 
 import carb
 import omni.client
@@ -14,16 +22,6 @@ THUMBNAIL_FULL_PATH = f"{THUMBNAIL_PATH}/{THUMBNAIL_SIZE}x{THUMBNAIL_SIZE}/"
 
 
 class S3Collector(AbstractCollector):
-    """Collect set of assets from s3.
-
-        Args:
-            url (str):S3 url to retreive assets. 
-            vendor (str): Vendor name. 
-        
-        Keyword args:
-            filter_file_suffixes (Optional[List[str]]): List of valid asset file suffix. None means all valid.
-    """
-
     def __init__(
         self, url: str, vendor: str, filter_file_suffixes: Optional[List[str]] = [".usd", ".usda", ".usdc", ".usdz"]
     ) -> None:
