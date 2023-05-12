@@ -14,6 +14,7 @@ import carb.settings
 
 import aiohttp
 
+from requests.models import PreparedRequest
 from artec.services.browser.asset import BaseAssetStore, AssetModel, SearchCriteria, ProviderModel
 
 from pathlib import Path
@@ -106,31 +107,35 @@ class ArtecCloudAssetProvider(BaseAssetStore):
                 items = results.get("projects", [])
                 meta = results.get("meta")
 
-        assets: List[AssetModel] = []
-
+        assets: List[AssetModel] = []     
+        
         for item in items:
             item_categories = item.get("categories", [])
-            item_thumbnail = item.get("preview_presigned_url")
-            if item_thumbnail is not None:
-                assets.append(
-                    AssetModel(
-                        identifier=item.get("id"),
-                        name=item.get("name"),
-                        version="",
-                        published_at=item.get("created_at"),
-                        categories=item_categories,
-                        tags=[],
-                        vendor=self._provider_id,
-                        download_url=item.get("download_url", ""),
-                        product_url=item.get("viewer_url", ""),
-                        thumbnail=item_thumbnail,
-                        user=item.get("user"),
-                        fusions=item.get("fusions", ""),
-                    )
+            item_thumbnail = self.thumbnail_url(item.get("preview_presigned_url"))
+            assets.append(
+                AssetModel(
+                    identifier=item.get("id"),
+                    name=item.get("name"),
+                    version="",
+                    published_at=item.get("created_at"),
+                    categories=item_categories,
+                    tags=[],
+                    vendor=self._provider_id,
+                    download_url=item.get("download_url", ""),
+                    product_url=item.get("viewer_url", ""),
+                    thumbnail=item_thumbnail,
+                    user=item.get("user"),
+                    fusions=item.get("fusions", ""),
                 )
+            )
 
         to_continue = meta.get("total_count") > meta.get("current_page") * meta.get("per_page")
         return (assets, to_continue)
-
+    
+    def thumbnail_url(self, url: str) -> str:
+        req = PreparedRequest()
+        req.prepare_url(url, {"auth_token": self._auth_token})
+        return req.url
+          
     def destroy(self):
         self._auth_params = None
