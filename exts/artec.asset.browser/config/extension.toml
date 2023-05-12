@@ -25,10 +25,10 @@ preview_image = "data/preview.png"
 icon = "data/artec_cloud.png"
 
 [dependencies]
-"omni.kit.browser.core" = {}
-"artec.services.browser.asset" = {}
+"omni.kit.browser.core" = {version="2.1.5"}
+"artec.services.browser.asset" = {version="1.0.0"}
 "omni.usd" = {}
-"omni.services.client" = {}
+"omni.services.client" = {version="0.4.0"}
 "omni.kit.window.content_browser" = { optional=true }
 "omni.kit.window.filepicker" = {}
 
