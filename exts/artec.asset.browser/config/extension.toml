@@ -48,9 +48,9 @@ exts."artec.asset.browser".autoScroll = true
 exts."artec.asset.browser".enable = true
 exts."artec.asset.browser".providerId = "ArtecCloud"
 exts."artec.asset.browser".maxCountPerPage = 20
-exts."artec.asset.browser".modelsUrl = "http://cloud.artec3d.local/api/omni/1.0/projects"
-exts."artec.asset.browser".cloudSearchUrl = "http://cloud.artec3d.local/api/omni/1.0/projects.json"
-exts."artec.asset.browser".authorizeUrl = "http://cloud.artec3d.local/api/omni/1.0/sessions"
+exts."artec.asset.browser".modelsUrl = "https://cloud.artec3d.com/api/omni/1.0/projects"
+exts."artec.asset.browser".cloudSearchUrl = "https://cloud.artec3d.com/api/omni/1.0/projects.json"
+exts."artec.asset.browser".authorizeUrl = "https://cloud.artec3d.com/api/omni/1.0/sessions"
 
 [[test]]
 dependencies = [
