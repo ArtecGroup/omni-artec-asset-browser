@@ -1,5 +1,5 @@
 # all folders starting with _ are local
-_*/
+# _*/
 
 .DS_Store
 **/.vscode
@@ -10,3 +10,5 @@ _*/
 /.vs
 
 /app
+
+/tmp

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+  <g id="Download_dark" transform="translate(-3426 -1360)">
+    <g id="Group_3646" data-name="Group 3646" transform="translate(3435.012 1367.318)">
+      <path id="Path_5395" data-name="Path 5395" d="M37.784,32.465H30.762V50.423H23.7c-.548,0-.823.46-.435.729l10.373,9.5a.818.818,0,0,0,.869,0l10.372-9.5c.387-.269.113-.729-.434-.729H37.784Z" transform="translate(-23.08 -32.465)" fill="#264428"/>
+    </g>
+    <g id="Group_3648" data-name="Group 3648" transform="translate(3435.012 1364.373)">
+      <path id="Path_5395-2" data-name="Path 5395" d="M37.784,32.465H30.762V50.423H23.7c-.548,0-.823.46-.435.729l10.373,9.5a.818.818,0,0,0,.869,0l10.372-9.5c.387-.269.113-.729-.434-.729H37.784Z" transform="translate(-23.08 -32.465)" fill="#76b900"/>
+    </g>
+    <g id="debug_tint" transform="translate(2969 1300)">
+      <rect id="iconBase" width="40" height="40" transform="translate(457 60)" fill="none"/>
+    </g>
+  </g>
+</svg>

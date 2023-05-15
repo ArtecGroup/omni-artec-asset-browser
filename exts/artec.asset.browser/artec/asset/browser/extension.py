@@ -1,43 +1,57 @@
+# Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+#
+# NVIDIA CORPORATION and its licensors retain all intellectual property
+# and proprietary rights in and to this software, related documentation
+# and any modifications thereto.  Any use, reproduction, disclosure or
+# distribution of this software and related documentation without an express
+# license agreement from NVIDIA CORPORATION is strictly prohibited.
+#
+# Forked from AssetStore class AssetStoreExtension
+
 import omni.ext
-import omni.ui as ui
+import omni.kit.ui
+
+from .window import ArtecCloudWindow, ARTEC_CLOUD_WINDOW_NAME
+from .artec_cloud import ArtecCloudAssetProvider
+from artec.services.browser.asset import get_instance as get_asset_services
+
+ARTEC_CLOUD_BROWSER_MENU_PATH = "Window/Browsers/" + ARTEC_CLOUD_WINDOW_NAME
+_extension_instance = None
 
 
-# Functions and vars are available to other extension as usual in python: `example.python_ext.some_public_function(x)`
-def some_public_function(x: int):
-    print("[artec.asset.browser] some_public_function was called with x: ", x)
-    return x ** x
-
-
-# Any class derived from `omni.ext.IExt` in top level module (defined in `python.modules` of `extension.toml`) will be
-# instantiated when extension gets enabled and `on_startup(ext_id)` will be called. Later when extension gets disabled
-# on_shutdown() is called.
-class MyExtension(omni.ext.IExt):
-    # ext_id is current extension id. It can be used with extension manager to query additional information, like where
-    # this extension is located on filesystem.
+class ArtecAssetBrowserExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
-        print("[artec.asset.browser] MyExtension startup")
+        self._window = None
+        self._menu = omni.kit.ui.get_editor_menu().add_item(
+            ARTEC_CLOUD_BROWSER_MENU_PATH, self._on_click, toggle=True, value=True
+        )
 
-        self._count = 0
+        self._window = ArtecCloudWindow()
+        self._window.set_visibility_changed_fn(self._on_visibility_changed)
 
-        self._window = ui.Window("My Window", width=300, height=300)
-        with self._window.frame:
-            with ui.VStack():
-                label = ui.Label("")
+        global _extension_instance
+        _extension_instance = self
 
+        self._asset_provider = ArtecCloudAssetProvider()
+        self._asset_service = get_asset_services()
+        self._asset_service.register_store(self._asset_provider)
 
-                def on_click():
-                    self._count += 1
-                    label.text = f"count: {self._count}"
-
-                def on_reset():
-                    self._count = 0
-                    label.text = "empty"
-
-                on_reset()
-
-                with ui.HStack():
-                    ui.Button("Add", clicked_fn=on_click)
-                    ui.Button("Reset", clicked_fn=on_reset)
+        _extension_instance
 
     def on_shutdown(self):
-        print("[artec.asset.browser] MyExtension shutdown")
+        self._asset_service.unregister_store(self._asset_provider)
+        self._asset_provider = None
+        self._asset_service = None
+
+        if self._window is not None:
+            self._window.destroy()
+            self._window = None
+
+        global _extension_instance
+        _extension_instance = None
+
+    def _on_click(self, *args):
+        self._window.visible = not self._window.visible
+
+    def _on_visibility_changed(self, visible):
+        omni.kit.ui.get_editor_menu().set_value(ARTEC_CLOUD_BROWSER_MENU_PATH, visible)

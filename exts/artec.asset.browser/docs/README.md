@@ -1,3 +1,5 @@
-# Simple UI Extension Template
+# Artec Cloud asset browser
 
-The simplest python extension example. Use it as a starting point for your extensions.
+Provides access to Artec Cloud models for Omniverse
+
+![image](./../data/artec-cloud-code.png)
