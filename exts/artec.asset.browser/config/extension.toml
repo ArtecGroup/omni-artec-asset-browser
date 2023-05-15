@@ -17,7 +17,7 @@ keywords = ['browser', 'asset', 'model', 'artec', 'cloud']
 
 # Location of change log file in target (final) folder of extension, relative to the root.
 # More info on writing changelog: https://keepachangelog.com/en/1.0.0/
-changelog="docs/CHANGELOG.rst"
+changelog="docs/CHANGELOG.md"
 
 category = "services"
 readme  = "docs/README.md"
