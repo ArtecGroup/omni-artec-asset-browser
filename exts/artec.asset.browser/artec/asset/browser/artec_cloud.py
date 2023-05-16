@@ -14,7 +14,8 @@ import carb.settings
 
 import aiohttp
 
-from requests.models import PreparedRequest
+from urllib.parse import urlparse, urlencode
+
 from artec.services.browser.asset import BaseAssetStore, AssetModel, SearchCriteria, ProviderModel
 
 from pathlib import Path
@@ -133,9 +134,9 @@ class ArtecCloudAssetProvider(BaseAssetStore):
         return (assets, to_continue)
     
     def thumbnail_url(self, url: str) -> str:
-        req = PreparedRequest()
-        req.prepare_url(url, {"auth_token": self._auth_token})
-        return req.url
-          
+        params = {"auth_token": self._auth_token}
+        url += ('&' if urlparse(url).query else '?') + urlencode(params)
+        return url
+
     def destroy(self):
         self._auth_params = None
