@@ -26,6 +26,7 @@ from pxr import Tf
 from .asset_store_client import AssetStoreClient
 from .asset_detail_item import AssetDetailItem, MoreDetailItem, SearchingDetailItem
 from .main_navigation_item import MainNavigationItem
+from .asset_fusion import AssetFusion
 from .common_categories import COMMON_CATEGORIES
 
 SETTING_ROOT = "/exts/artec.asset.browser/"
@@ -402,7 +403,7 @@ class AssetStoreModel(AbstractBrowserModel):
         asset: Dict,
         dest_url: str,
         callback: Callable[[Dict], None] = None,
-        on_progress_fn: Callable[[float], None] = None,
+        on_progress_fn: Callable[[AssetFusion, float], None] = None,
     ):
         asset_store = self.get_store(asset.get("vendor"))
         if not asset_store:
@@ -421,8 +422,42 @@ class AssetStoreModel(AbstractBrowserModel):
             price=asset.get("price", 0.0),
             thumbnail=asset.get("thumbnail", ""),
             user=asset.get("user", ""),
+            fusions=asset.get("fusions", ""),
         )
         results = await asset_store.download(asset_model, dest_url, on_progress_fn=on_progress_fn, timeout=600)
+        if results.get("status") != omni.client.Result.OK:
+            carb.log_info(f"Failed to download asset from {asset.get('vendor')}.")
+        if callback:
+            callback(results)
+
+    async def download_fusion_async(
+        self,
+        fusion: AssetFusion,
+        asset: Dict,
+        dest_url: str,
+        callback: Callable[[Dict], None] = None,
+        on_progress_fn: Callable[..., None] = None, # AssetDetailDelegate._on_fusion_download_progress
+    ):
+        asset_store = self.get_store(asset.get("vendor"))
+        if not asset_store:
+            return
+
+        asset_model = AssetModel(
+            identifier=asset.get("identifier", ""),
+            name=asset.get("name", ""),
+            version=asset.get("version", ""),
+            published_at=asset.get("publishedAt", ""),
+            categories=asset.get("categories", []),
+            tags=asset.get("tags", []),
+            vendor=asset.get("vendor", ""),
+            download_url=asset.get("download_url", ""),
+            product_url=asset.get("product_url", ""),
+            price=asset.get("price", 0.0),
+            thumbnail=asset.get("thumbnail", ""),
+            user=asset.get("user", ""),
+            fusions=asset.get("fusions", ""),
+        )
+        results = await asset_store.download(fusion, asset_model, dest_url, on_progress_fn=on_progress_fn, timeout=600)
         if results.get("status") != omni.client.Result.OK:
             carb.log_info(f"Failed to download asset from {asset.get('vendor')}.")
         if callback:

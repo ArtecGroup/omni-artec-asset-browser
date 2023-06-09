@@ -15,7 +15,7 @@ import omni.client
 import omni.kit.app
 from omni.kit.browser.core import DetailDelegate, DetailItem, create_drop_helper
 from omni.kit.window.filepicker import FilePickerDialog
-from .models import AssetStoreModel, AssetDetailItem, AssetType, MoreDetailItem, SearchingDetailItem
+from .models import AssetStoreModel, AssetDetailItem, AssetType, MoreDetailItem, SearchingDetailItem, AssetFusion
 from .hover_window import HoverWindow
 from .auth_dialog import AuthDialog
 from .download_progress_bar import DownloadProgressBar
@@ -56,6 +56,7 @@ class AssetDetailDelegate(DetailDelegate):
         self._settings = carb.settings.get_settings()
         self._context_menu: Optional[ui.Menu] = None
         self._action_item: Optional[AssetDetailItem] = None
+        self._action_fusion: Optional[AssetFusion] = None
         self._vendor_container: Dict[AssetDetailItem, ui.ZStack] = {}
         self._hover_center_container: Dict[AssetDetailItem, ui.VStack] = {}
         self._hover_center_label: Dict[AssetDetailItem, ui.Label] = {}
@@ -64,7 +65,7 @@ class AssetDetailDelegate(DetailDelegate):
         self._hover_background: Dict[AssetDetailItem, ui.Widget] = {}
         self._asset_type_container: Dict[AssetDetailItem, ui.Widget] = {}
         self._asset_type_image: Dict[AssetDetailItem, ui.Image] = {}
-        self._download_progress_bar: Dict[AssetDetailItem, DownloadProgressBar] = {}
+        self._download_progress_bar: Dict[AssetDetailItem, AssetFusion, DownloadProgressBar] = {}
         self._draggable_urls: Dict[str, str] = {}
         self._auth_dialog: Optional[AuthDialog] = None
         self._pick_folder_dialog: Optional[FilePickerDialog] = None
@@ -201,6 +202,12 @@ class AssetDetailDelegate(DetailDelegate):
             if self._on_request_more_fn:
                 self._on_request_more_fn()
 
+    def download_fusion(self, fusion: AssetFusion) -> None:
+        if fusion in self._download_progress_bar and self._download_progress_bar[fusion].visible:
+            # Already downloading, do nothing
+            return
+        self._download_fusion_asset(fusion)
+
     def on_right_click(self, item: DetailItem) -> None:
         """Show context menu"""
         self._action_item = item
@@ -216,15 +223,15 @@ class AssetDetailDelegate(DetailDelegate):
             if show_web or show_collect:
                 self._context_menu = ui.Menu("Asset browser context menu")
                 with self._context_menu:
-                    # TODO: Comment-out Download context-menu option
-                    # with ui.Menu("Download"):
-                    #     if item.asset_model.get("fusions"):
-                    #         for fusion in item.asset_model.get("fusions"):
-                    #             ui.MenuItem(
-                    #                 fusion["name"], triggered_fn=partial(webbrowser.open, fusion["download_url"])
-                    #             )
-                    #             ui.Line(alignment=ui.Alignment.BOTTOM, style_type_name_override="MenuSeparator")
-                    #             ui.Separator()
+                    with ui.Menu("Download"):
+                        if item.asset_model.get("fusions"):
+                            for fusion_info in item.asset_model.get("fusions"):
+                                fusion = AssetFusion(item, fusion_info['name'], fusion_info['download_url'])
+                                ui.MenuItem(
+                                    fusion.name, 
+                                    triggered_fn=partial(self.download_fusion, fusion)
+                                )
+                                ui.Separator()
 
                     if show_web:
                         ui.MenuItem(
@@ -454,46 +461,15 @@ class AssetDetailDelegate(DetailDelegate):
         except AttributeError:
             carb.log_warn("Require omni.kit.tool.collect v2.0.5 or later!")
 
-    def _download_asset(self, item: AssetDetailItem) -> None:
-        """Download asset"""
+    def _download_fusion_asset(self, fusion: AssetFusion) -> None:
+        self.select_fusion_download_folder(fusion)
 
-        def on_authenticate(item: AssetDetailItem, dialog: AuthDialog):
-            def check_authorized(item: AssetDetailItem, dialog: AuthDialog):
-                if item.authorized():
-                    dialog.hide()
-                    self.select_download_folder(item)
-                else:
-                    dialog.warn_password()
-
-            asyncio.ensure_future(
-                self._model.authenticate_async(
-                    item.asset_model["vendor"], dialog.username, dialog.password, lambda: check_authorized(item, dialog)
-                )
-            )
-
-        def on_cancel(item: AssetDetailItem, dialog: AuthDialog):
-            dialog.hide()
-            if item and "product_url" in item.asset_model:
-                webbrowser.open(item.asset_model["product_url"])
-
-        if item.asset_type != AssetType.DOWNLOAD:
-            return
-        elif item.authorized():
-            self.select_download_folder(item)
-        else:
-            if not self._auth_dialog:
-                self._auth_dialog = AuthDialog()
-            self._auth_dialog.show(
-                item.asset_model["vendor"],
-                click_okay_handler=partial(on_authenticate, item),
-                click_cancel_handler=partial(on_cancel, item),
-            )
-
-    def select_download_folder(self, item: AssetDetailItem):
-        self._action_item = item
+    def select_fusion_download_folder(self, fusion: AssetFusion):
+        self._action_item = fusion.asset
+        self._action_fusion = fusion
         if self._pick_folder_dialog is None:
             self._pick_folder_dialog = self._create_filepicker(
-                "Select Directory to Download Asset", click_apply_fn=self._on_folder_picked, dir_only=True
+                "Select Directory to Download Asset", click_apply_fn=self._on_fusion_folder_picked, dir_only=True
             )
         self._pick_folder_dialog.show()
 
@@ -534,6 +510,94 @@ class AssetDetailDelegate(DetailDelegate):
         dialog.hide()
         return dialog
 
+    def _on_fusion_folder_picked(self, url: Optional[str]) -> None:
+        fusion = self._action_fusion
+        if url is not None:
+            self._pick_folder_dialog.set_current_directory(url)
+            asyncio.ensure_future(
+                self._model.download_fusion_async(
+                    fusion,
+                    fusion.asset.asset_model,
+                    url,
+                    callback=partial(self._on_fusion_asset_downloaded, fusion),
+                    on_progress_fn=partial(self._on_fusion_download_progress, fusion),
+                )
+            )
+
+        self._download_progress_bar[fusion].visible = True
+
+        if fusion.asset in self._hover_center_label:
+            self._hover_label[fusion.asset].text = "Downloading"
+        if fusion.asset in self._hover_label:
+            self._hover_center_label[fusion.asset].text = "Downloading"
+    
+    def _on_fusion_download_progress(self, fusion: AssetFusion, progress: float) -> None:
+        if fusion.asset in self._download_progress_bar:
+            self._download_progress_bar[fusion].progress = progress
+
+    def _on_fusion_asset_downloaded(self, fusion: AssetFusion, results: Dict):
+        self._download_progress_bar[fusion].visible = False
+
+        if results.get("status") != omni.client.Result.OK:
+            return
+
+        async def delayed_item_changed(model: AssetStoreModel, item: AssetDetailItem):
+            for _ in range(20):
+                await omni.kit.app.get_app().next_update_async()
+            # TODO Do I need item changed
+            self.item_changed(model, item)
+
+        url = results.get("url")
+        if url:
+            item = fusion.asset
+            asyncio.ensure_future(delayed_item_changed(self._model, item))
+
+    # USED OTHER
+    def select_download_folder(self, item: AssetDetailItem, url: str):
+        self._action_item = item
+        if self._pick_folder_dialog is None:
+            self._pick_folder_dialog = self._create_filepicker(
+                "Select Directory to Download Asset", click_apply_fn=self._on_folder_picked, dir_only=True
+            )
+        self._pick_folder_dialog.show()
+    
+    # USED OTHER
+    def _download_asset(self, item: AssetDetailItem) -> None:
+        """Download asset"""
+
+        def on_authenticate(item: AssetDetailItem, dialog: AuthDialog):
+            def check_authorized(item: AssetDetailItem, dialog: AuthDialog):
+                if item.authorized():
+                    dialog.hide()
+                    self.select_download_folder(item)
+                else:
+                    dialog.warn_password()
+
+            asyncio.ensure_future(
+                self._model.authenticate_async(
+                    item.asset_model["vendor"], dialog.username, dialog.password, lambda: check_authorized(item, dialog)
+                )
+            )
+
+        def on_cancel(item: AssetDetailItem, dialog: AuthDialog):
+            dialog.hide()
+            if item and "product_url" in item.asset_model:
+                webbrowser.open(item.asset_model["product_url"])
+
+        if item.asset_type != AssetType.DOWNLOAD:
+            return
+        elif item.authorized():
+            self.select_download_folder(item)
+        else:
+            if not self._auth_dialog:
+                self._auth_dialog = AuthDialog()
+            self._auth_dialog.show(
+                item.asset_model["vendor"],
+                click_okay_handler=partial(on_authenticate, item),
+                click_cancel_handler=partial(on_cancel, item),
+            )
+   
+    # USED OTHER
     def _on_folder_picked(self, url: Optional[str]) -> None:
         item = self._action_item
         if url is not None:
@@ -554,10 +618,12 @@ class AssetDetailDelegate(DetailDelegate):
         if item in self._hover_label:
             self._hover_center_label[item].text = "Downloading"
 
+    # USED OTHER
     def _on_download_progress(self, item: AssetDetailItem, progress: float) -> None:
         if item in self._download_progress_bar:
             self._download_progress_bar[item].progress = progress
 
+    # USED OTHER
     def _on_asset_downloaded(self, item: AssetDetailItem, results: Dict):
         self._download_progress_bar[item].visible = False
 
