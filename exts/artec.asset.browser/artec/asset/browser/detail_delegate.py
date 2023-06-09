@@ -213,14 +213,8 @@ class AssetDetailDelegate(DetailDelegate):
         self._action_item = item
         if isinstance(item, AssetDetailItem):
             show_web = item.asset_model.get("product_url", "") != ""
-            show_collect = False
-            try:
-                import omni.kit.tool.collect
-                show_collect = True
-            except ImportError:
-                carb.log_warn("Please enable omni.kit.tool.collect first to collect.")
 
-            if show_web or show_collect:
+            if show_web:
                 self._context_menu = ui.Menu("Asset browser context menu")
                 with self._context_menu:
                     with ui.Menu("Download"):
@@ -238,8 +232,6 @@ class AssetDetailDelegate(DetailDelegate):
                             "Open in Web Browser",
                             triggered_fn=partial(webbrowser.open, item.asset_model["product_url"]),
                         )
-                    if show_collect:
-                        ui.MenuItem("Collect", triggered_fn=self._collect)
                 self._context_menu.show()
 
     def build_thumbnail(self, item: AssetDetailItem, container: ui.Widget = None) -> Optional[ui.Image]:
