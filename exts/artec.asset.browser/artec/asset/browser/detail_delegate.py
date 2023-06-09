@@ -65,7 +65,7 @@ class AssetDetailDelegate(DetailDelegate):
         self._hover_background: Dict[AssetDetailItem, ui.Widget] = {}
         self._asset_type_container: Dict[AssetDetailItem, ui.Widget] = {}
         self._asset_type_image: Dict[AssetDetailItem, ui.Image] = {}
-        self._download_progress_bar: Dict[AssetDetailItem, AssetFusion, DownloadProgressBar] = {}
+        self._download_progress_bar: Dict[AssetFusion, DownloadProgressBar] = {}
         self._draggable_urls: Dict[str, str] = {}
         self._auth_dialog: Optional[AuthDialog] = None
         self._pick_folder_dialog: Optional[FilePickerDialog] = None
@@ -441,18 +441,6 @@ class AssetDetailDelegate(DetailDelegate):
         else:
             return ""
 
-    def _collect(self):
-        try:
-            import omni.kit.tool.collect
-
-            collect_instance = omni.kit.tool.collect.get_instance()
-            collect_instance.collect(self._action_item.url)
-            collect_instance = None
-        except ImportError:
-            carb.log_warn("Failed to import collect module (omni.kit.tool.collect). Please enable it first.")
-        except AttributeError:
-            carb.log_warn("Require omni.kit.tool.collect v2.0.5 or later!")
-
     def _download_fusion_asset(self, fusion: AssetFusion) -> None:
         self.select_fusion_download_folder(fusion)
 
@@ -516,7 +504,8 @@ class AssetDetailDelegate(DetailDelegate):
                 )
             )
 
-        self._download_progress_bar[fusion].visible = True
+        if self._download_progress_bar.get(fusion):
+            self._download_progress_bar[fusion].visible = True
 
         if fusion.asset in self._hover_center_label:
             self._hover_label[fusion.asset].text = "Downloading"
@@ -524,11 +513,12 @@ class AssetDetailDelegate(DetailDelegate):
             self._hover_center_label[fusion.asset].text = "Downloading"
     
     def _on_fusion_download_progress(self, fusion: AssetFusion, progress: float) -> None:
-        if fusion.asset in self._download_progress_bar:
+        if fusion in self._download_progress_bar:
             self._download_progress_bar[fusion].progress = progress
 
     def _on_fusion_asset_downloaded(self, fusion: AssetFusion, results: Dict):
-        self._download_progress_bar[fusion].visible = False
+        if self._download_progress_bar.get(fusion):
+            self._download_progress_bar[fusion].visible = False
 
         if results.get("status") != omni.client.Result.OK:
             return

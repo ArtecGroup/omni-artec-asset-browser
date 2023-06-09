@@ -8,17 +8,21 @@
 #
 # Forked from SketchFabAssetProvider for asset store
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Callable
 import carb
 import carb.settings
 
 import aiohttp
+import asyncio
+import omni.client
 
 from urllib.parse import urlparse, urlencode
 
 from artec.services.browser.asset import BaseAssetStore, AssetModel, SearchCriteria, ProviderModel
 
 from pathlib import Path
+
+from .models.asset_fusion import AssetFusion
 
 SETTING_ROOT = "/exts/artec.asset.browser/"
 SETTING_STORE_ENABLE = SETTING_ROOT + "enable"
@@ -140,3 +144,52 @@ class ArtecCloudAssetProvider(BaseAssetStore):
 
     def destroy(self):
         self._auth_params = None
+
+    async def download(
+        self, fusion: AssetFusion, dest_url: str, on_progress_fn: Callable[[float], None] = None, timeout: int = 600
+    ) -> Dict:
+        self._download_progress[fusion.name] = 0
+
+        def __on_download_progress(progress):
+            self._download_progress[fusion.name] = progress
+            if on_progress_fn:
+                on_progress_fn(progress)
+
+        download_future = asyncio.Task(self._download(fusion, dest_url, on_progress_fn=__on_download_progress))
+        while True:
+            last_progress = self._download_progress[fusion.name]
+            done, pending = await asyncio.wait([download_future], timeout=timeout)
+            if done:
+                return download_future.result()
+            else:
+                # download not completed
+                # if progress changed, continue to wait for completed
+                # otherwwise, treat as timeout
+                if self._download_progress[fusion.name] == last_progress:
+                    carb.log_warn(f"[{fusion.name}]: download timeout")
+                    download_future.cancel()
+                    return {"status": omni.client.Result.ERROR_ACCESS_LOST}
+                
+    async def _download(self, fusion: AssetFusion, dest_url: str, on_progress_fn: Callable[[float], None] = None) -> Dict:
+        ret_value = {"url": None}
+        if fusion and fusion.url:
+            file_name = fusion.url.split("/")[-1]
+            dest_url = f"{dest_url}/{file_name}"
+            carb.log_info(f"Download {fusion.url} to {dest_url}")
+            result = await omni.client.copy_async(
+                fusion.url, dest_url, behavior=omni.client.CopyBehavior.OVERWRITE
+            )
+            ret_value["status"] = result
+            if result != omni.client.Result.OK:
+                carb.log_error(f"Failed to download {fusion.url} to {dest_url}")
+                return ret_value
+            if fusion.url.lower().endswith(".zip"):
+                # unzip
+                output_url = dest_url[:-4]
+                await omni.client.create_folder_async(output_url)
+                carb.log_info(f"Unzip {dest_url} to {output_url}")
+                with zipfile.ZipFile(dest_url, "r") as zip_ref:
+                    zip_ref.extractall(output_url)
+                    dest_url = output_url
+            ret_value["url"] = dest_url
+        return ret_value
