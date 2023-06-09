@@ -217,8 +217,8 @@ class AssetDetailDelegate(DetailDelegate):
             if show_web:
                 self._context_menu = ui.Menu("Asset browser context menu")
                 with self._context_menu:
-                    with ui.Menu("Download"):
-                        if item.asset_model.get("fusions"):
+                    if item.asset_model.get("fusions"):
+                        with ui.Menu("Download"):
                             for fusion_info in item.asset_model.get("fusions"):
                                 fusion = AssetFusion(item, fusion_info['name'], fusion_info['download_url'])
                                 ui.MenuItem(
