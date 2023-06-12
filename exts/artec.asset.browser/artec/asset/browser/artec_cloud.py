@@ -116,7 +116,7 @@ class ArtecCloudAssetProvider(BaseAssetStore):
         
         for item in items:
             item_categories = item.get("categories", [])
-            item_thumbnail = self.thumbnail_url(item.get("preview_presigned_url"))
+            item_thumbnail = self.url_with_token(item.get("preview_presigned_url"))
             assets.append(
                 AssetModel(
                     identifier=item.get("id"),
@@ -136,8 +136,8 @@ class ArtecCloudAssetProvider(BaseAssetStore):
 
         to_continue = meta.get("total_count") > meta.get("current_page") * meta.get("per_page")
         return (assets, to_continue)
-    
-    def thumbnail_url(self, url: str) -> str:
+
+    def url_with_token(self, url: str) -> str:
         params = {"auth_token": self._auth_token}
         url += ('&' if urlparse(url).query else '?') + urlencode(params)
         return url
