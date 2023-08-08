@@ -8,13 +8,17 @@
 #
 # Forked from SketchFabAssetProvider for asset store
 
+from dataclasses import dataclass
+from enum import Enum
 from typing import Dict, List, Tuple, Callable
 import carb
 import carb.settings
 
 import aiohttp
+import aiofiles
 import asyncio
 import omni.client
+import omni.kit.asset_converter as converter
 
 from urllib.parse import urlparse, urlencode
 
@@ -29,6 +33,27 @@ SETTING_STORE_ENABLE = SETTING_ROOT + "enable"
 
 CURRENT_PATH = Path(__file__).parent
 DATA_PATH = CURRENT_PATH.parent.parent.parent.joinpath("data")
+
+
+class ConversionTaskStatus(Enum):
+    ENQUEUED = 1
+    IN_PROGRESS = 2
+    PROCESSED = 3
+    FAILED = -1
+
+
+@dataclass
+class ConversionResult:
+    status: ConversionTaskStatus
+    download_url: str
+
+
+async def convert(input_asset_path, output_asset_path):
+    task_manager = converter.get_instance()
+    task = task_manager.create_converter_task(input_asset_path, output_asset_path, None)
+    success = await task.wait_until_finished()
+    if not success:
+        carb.log_error(f"Conversion failed. Reason: {task.get_error_message()}")
 
 
 class ArtecCloudAssetProvider(BaseAssetStore):
@@ -112,8 +137,8 @@ class ArtecCloudAssetProvider(BaseAssetStore):
                 items = results.get("projects", [])
                 meta = results.get("meta")
 
-        assets: List[AssetModel] = []     
-        
+        assets: List[AssetModel] = []
+
         for item in items:
             item_categories = item.get("categories", [])
             item_thumbnail = self.url_with_token(item.get("preview_presigned_url"))
@@ -145,51 +170,42 @@ class ArtecCloudAssetProvider(BaseAssetStore):
     def destroy(self):
         self._auth_params = None
 
-    async def download(
-        self, fusion: AssetFusion, dest_url: str, on_progress_fn: Callable[[float], None] = None, timeout: int = 600
-    ) -> Dict:
+    async def download(self, fusion: AssetFusion, dest_path: str,
+                       on_progress_fn: Callable[[float], None] = None, timeout: int = 600) -> Dict:
         self._download_progress[fusion.name] = 0
-
-        def __on_download_progress(progress):
-            self._download_progress[fusion.name] = progress
-            if on_progress_fn:
-                on_progress_fn(progress)
-
-        download_future = asyncio.Task(self._download(fusion, dest_url, on_progress_fn=__on_download_progress))
+        dest_path = f"{dest_path}/{fusion.name}.obj"
+        snapshot_group_id = await self._request_model(fusion)
         while True:
-            last_progress = self._download_progress[fusion.name]
-            done, pending = await asyncio.wait([download_future], timeout=timeout)
-            if done:
-                return download_future.result()
-            else:
-                # download not completed
-                # if progress changed, continue to wait for completed
-                # otherwwise, treat as timeout
-                if self._download_progress[fusion.name] == last_progress:
-                    carb.log_warn(f"[{fusion.name}]: download timeout")
-                    download_future.cancel()
-                    return {"status": omni.client.Result.ERROR_ACCESS_LOST}
-                
-    async def _download(self, fusion: AssetFusion, dest_url: str, on_progress_fn: Callable[[float], None] = None) -> Dict:
-        ret_value = {"url": None}
-        if fusion and fusion.url:
-            file_name = fusion.url.split("/")[-1]
-            dest_url = f"{dest_url}/{file_name}"
-            carb.log_info(f"Download {fusion.url} to {dest_url}")
-            result = await omni.client.copy_async(
-                fusion.url, dest_url, behavior=omni.client.CopyBehavior.OVERWRITE
-            )
-            ret_value["status"] = result
-            if result != omni.client.Result.OK:
-                carb.log_error(f"Failed to download {fusion.url} to {dest_url}")
-                return ret_value
-            if fusion.url.lower().endswith(".zip"):
-                # unzip
-                output_url = dest_url[:-4]
-                await omni.client.create_folder_async(output_url)
-                carb.log_info(f"Unzip {dest_url} to {output_url}")
-                with zipfile.ZipFile(dest_url, "r") as zip_ref:
-                    zip_ref.extractall(output_url)
-                    dest_url = output_url
-            ret_value["url"] = dest_url
-        return ret_value
+            conversion_result = await self._check_status(fusion, snapshot_group_id)
+            if conversion_result.status is ConversionTaskStatus.PROCESSED:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(conversion_result.download_url) as response:
+                        async with aiofiles.open(dest_path, "wb") as file:
+                            await file.write(await response.read())
+                        break
+            elif conversion_result.status is ConversionTaskStatus.FAILED:
+                return {"url": None, "status": omni.client.Result.ERROR}
+
+        usd_path = dest_path.replace('.obj', '.usd')
+        asyncio.ensure_future(convert(dest_path, usd_path))
+        return {"url": usd_path, "status": omni.client.Result.OK}
+
+    async def _check_status(self, fusion: AssetFusion, snapshot_group_id):
+        params = {
+            "auth_token": self._auth_token,
+            "snapshot_group_id": snapshot_group_id
+        }
+        slug = fusion.asset.asset_model["product_url"].split("/")[-1]
+        url = f"https://staging-cloud.artec3d.com/api/omni/1.0/projects/{slug}/conversion_status"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url=url, params=params) as response:
+                decoded_response = await response.json()
+        result = ConversionResult(ConversionTaskStatus(int(decoded_response["project"]["conversion_status"])),
+                                  decoded_response["project"]["download_url"])
+        return result
+
+    async def _request_model(self, fusion: AssetFusion):
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url=self.url_with_token(fusion.url)) as response:
+                results = await response.json()
+        return results["project"]["snapshot_group_id"]
