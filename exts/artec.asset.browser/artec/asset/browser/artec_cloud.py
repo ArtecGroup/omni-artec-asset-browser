@@ -17,8 +17,11 @@ import carb.settings
 import aiohttp
 import aiofiles
 import asyncio
+import glob
 import omni.client
 import omni.kit.asset_converter as converter
+import tempfile
+import zipfile
 
 from urllib.parse import urlparse, urlencode
 
@@ -173,22 +176,39 @@ class ArtecCloudAssetProvider(BaseAssetStore):
     async def download(self, fusion: AssetFusion, dest_path: str,
                        on_progress_fn: Callable[[float], None] = None, timeout: int = 600) -> Dict:
         self._download_progress[fusion.name] = 0
-        dest_path = f"{dest_path}/{fusion.name}.obj"
-        snapshot_group_id = await self._request_model(fusion)
-        while True:
-            conversion_result = await self._check_status(fusion, snapshot_group_id)
-            if conversion_result.status is ConversionTaskStatus.PROCESSED:
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(conversion_result.download_url) as response:
-                        async with aiofiles.open(dest_path, "wb") as file:
-                            await file.write(await response.read())
-                        break
-            elif conversion_result.status is ConversionTaskStatus.FAILED:
-                return {"url": None, "status": omni.client.Result.ERROR}
 
-        usd_path = dest_path.replace('.obj', '.usd')
-        asyncio.ensure_future(convert(dest_path, usd_path))
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            zip_file_path = f"{tmp_dir}/{fusion.name}.zip"
+            snapshot_group_id = await self._request_model(fusion)
+
+            while True:
+                conversion_result = await self._check_status(fusion, snapshot_group_id)
+                if conversion_result.status is ConversionTaskStatus.PROCESSED:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(conversion_result.download_url) as response:
+                            async with aiofiles.open(zip_file_path, "wb") as file:
+                                await file.write(await response.read())
+                            break
+                elif conversion_result.status is ConversionTaskStatus.FAILED:
+                    return {"url": None, "status": omni.client.Result.ERROR}
+
+            # unzip
+            output_path = zip_file_path[:-4]
+            await self._extract_zip(zip_file_path, output_path)
+
+            # convert from OBJ -> USD
+            asset_folder_path = f"{dest_path}/{fusion.name}"
+            obj_path = glob.glob(f"{output_path}\**\*.obj", recursive = True)[0]
+            usd_path = f"{asset_folder_path}/{fusion.name}.usd"
+            await omni.client.create_folder_async(asset_folder_path)
+            await convert(obj_path, usd_path)
+
         return {"url": usd_path, "status": omni.client.Result.OK}
+
+    async def _extract_zip(self, input_path, output_path):
+        await omni.client.create_folder_async(output_path)
+        with zipfile.ZipFile(input_path, "r") as zip_ref:
+            zip_ref.extractall(output_path)
 
     async def _check_status(self, fusion: AssetFusion, snapshot_group_id):
         params = {
