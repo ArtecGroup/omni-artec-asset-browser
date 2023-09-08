@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="71" height="71" viewBox="0 0 71 71">
+  <defs>
+    <filter id="Rectangle_2113" x="0" y="0" width="71" height="71" filterUnits="userSpaceOnUse">
+      <feOffset dx="2" dy="2" input="SourceAlpha"/>
+      <feGaussianBlur stdDeviation="1" result="blur"/>
+      <feFlood flood-opacity="0.38"/>
+      <feComposite operator="in" in2="blur"/>
+      <feComposite in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <g id="folder_logo" data-name="folder logo" transform="translate(-1313 -119.512)">
+    <g transform="matrix(1, 0, 0, 1, 1313, 119.51)" filter="url(#Rectangle_2113)">
+      <rect id="Rectangle_2113-2" data-name="Rectangle 2113" width="65" height="65" transform="translate(1 1)"/>
+    </g>
+    <g id="open_dark" transform="translate(1323.849 129.352)">
+      <rect id="iconBase" width="47.273" height="47.273" fill="none"/>
+      <path id="folder_closed" d="M54.389,64.982V84.7l-.109.581-.115.641-.218.521-.224.521-.281.468-.332.521-.447.468-.384.408-.5.348-.441.294-.5.288-.5.234-.556.114-.556.06H16.911l-.556-.06-.5-.114-.556-.234-.5-.288-.447-.294-.441-.348-.5-.408-.332-.468-.39-.521-.224-.468-.275-.521-.166-.521-.166-.641L11.8,84.7l-.057-.581V58.005l.057-.641.057-.581.166-.522.166-.581.275-.521.224-.528.39-.462.332-.468.5-.462.441-.294L14.8,52.6l.5-.294.556-.114.5-.174.556-.06.556-.06H25.7l.556.06.556.06.556.174.5.114.5.294.447.348.5.294.39.462.441.468.338.462.275.528.281.521.166.581.166.522.052.581.057.641v.875H48.663l.556.054.556.06.556.174.5.12.5.288.441.294.5.348.384.462.447.468.332.468.281.522.224.521.218.581.115.527.109.581v.635Z" transform="translate(-9.771 -47.356)" fill="#a8a8a8" fill-rule="evenodd"/>
+    </g>
+  </g>
+</svg>

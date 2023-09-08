@@ -10,8 +10,8 @@
 
 from typing import List, Tuple
 
-from ..models import AssetModel, SearchCriteria
-from .base import BaseAssetStore
+from ...models import AssetModel, SearchCriteria
+from ..base import BaseAssetStore
 
 
 class StaticAssetStore(BaseAssetStore):
@@ -40,6 +40,8 @@ class StaticAssetStore(BaseAssetStore):
         if sort:
             key, order = sort
             reverse = True if order == "desc" else False
+            if key == "created_at":
+                key = "published_at"
             selected = sorted(selected, key=lambda item: getattr(item, key), reverse=reverse)
 
         start_index = 0

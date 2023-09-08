@@ -14,6 +14,7 @@ import omni.kit.ui
 from .window import ArtecCloudWindow, ARTEC_CLOUD_WINDOW_NAME
 from .artec_cloud import ArtecCloudAssetProvider
 from artec.services.browser.asset import get_instance as get_asset_services
+from artec.services.browser.asset.store.local.local import LocalFolderAssetProvider
 
 ARTEC_CLOUD_BROWSER_MENU_PATH = "Window/Browsers/" + ARTEC_CLOUD_WINDOW_NAME
 _extension_instance = None
@@ -33,14 +34,18 @@ class ArtecAssetBrowserExtension(omni.ext.IExt):
         _extension_instance = self
 
         self._asset_provider = ArtecCloudAssetProvider()
+        self._asset_provider_local = LocalFolderAssetProvider()
         self._asset_service = get_asset_services()
         self._asset_service.register_store(self._asset_provider)
+        self._asset_service.register_store(self._asset_provider_local)
 
         _extension_instance
 
     def on_shutdown(self):
         self._asset_service.unregister_store(self._asset_provider)
+        self._asset_service.unregister_store(self._asset_provider_local)
         self._asset_provider = None
+        self._asset_provider_local = None
         self._asset_service = None
 
         if self._window is not None:

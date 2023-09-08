@@ -7,3 +7,4 @@ class AssetFusion:
     asset: AssetDetailItem
     name: str
     url: str
+    thumbnail_url: str

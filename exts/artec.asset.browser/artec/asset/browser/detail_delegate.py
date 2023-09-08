@@ -220,9 +220,11 @@ class AssetDetailDelegate(DetailDelegate):
                     if item.asset_model.get("fusions"):
                         with ui.Menu("Download"):
                             for fusion_info in item.asset_model.get("fusions"):
-                                fusion = AssetFusion(item, fusion_info['name'], fusion_info['download_url'])
+                                fusion = AssetFusion(item, fusion_info['name'],
+                                                     fusion_info['download_url'],
+                                                     fusion_info["preview_url"])
                                 ui.MenuItem(
-                                    fusion.name, 
+                                    fusion.name,
                                     triggered_fn=partial(self.download_fusion, fusion)
                                 )
                                 ui.Separator()
@@ -511,12 +513,13 @@ class AssetDetailDelegate(DetailDelegate):
             self._hover_label[fusion.asset].text = "Downloading"
         if fusion.asset in self._hover_label:
             self._hover_center_label[fusion.asset].text = "Downloading"
-    
+
     def _on_fusion_download_progress(self, fusion: AssetFusion, progress: float) -> None:
         if fusion in self._download_progress_bar:
             self._download_progress_bar[fusion].progress = progress
 
     def _on_fusion_asset_downloaded(self, fusion: AssetFusion, results: Dict):
+        self._add_to_my_assets(results["url"])
         if self._download_progress_bar.get(fusion):
             self._download_progress_bar[fusion].visible = False
 
@@ -533,113 +536,6 @@ class AssetDetailDelegate(DetailDelegate):
         if url:
             item = fusion.asset
             asyncio.ensure_future(delayed_item_changed(self._model, item))
-
-    # USED OTHER
-    def select_download_folder(self, item: AssetDetailItem, url: str):
-        self._action_item = item
-        if self._pick_folder_dialog is None:
-            self._pick_folder_dialog = self._create_filepicker(
-                "Select Directory to Download Asset", click_apply_fn=self._on_folder_picked, dir_only=True
-            )
-        self._pick_folder_dialog.show()
-    
-    # USED OTHER
-    def _download_asset(self, item: AssetDetailItem) -> None:
-        """Download asset"""
-
-        def on_authenticate(item: AssetDetailItem, dialog: AuthDialog):
-            def check_authorized(item: AssetDetailItem, dialog: AuthDialog):
-                if item.authorized():
-                    dialog.hide()
-                    self.select_download_folder(item)
-                else:
-                    dialog.warn_password()
-
-            asyncio.ensure_future(
-                self._model.authenticate_async(
-                    item.asset_model["vendor"], dialog.username, dialog.password, lambda: check_authorized(item, dialog)
-                )
-            )
-
-        def on_cancel(item: AssetDetailItem, dialog: AuthDialog):
-            dialog.hide()
-            if item and "product_url" in item.asset_model:
-                webbrowser.open(item.asset_model["product_url"])
-
-        if item.asset_type != AssetType.DOWNLOAD:
-            return
-        elif item.authorized():
-            self.select_download_folder(item)
-        else:
-            if not self._auth_dialog:
-                self._auth_dialog = AuthDialog()
-            self._auth_dialog.show(
-                item.asset_model["vendor"],
-                click_okay_handler=partial(on_authenticate, item),
-                click_cancel_handler=partial(on_cancel, item),
-            )
-   
-    # USED OTHER
-    def _on_folder_picked(self, url: Optional[str]) -> None:
-        item = self._action_item
-        if url is not None:
-            self._pick_folder_dialog.set_current_directory(url)
-            asyncio.ensure_future(
-                self._model.download_async(
-                    item.asset_model,
-                    url,
-                    on_progress_fn=partial(self._on_download_progress, item),
-                    callback=partial(self._on_asset_downloaded, item),
-                )
-            )
-
-        self._download_progress_bar[item].visible = True
-
-        if item in self._hover_center_label:
-            self._hover_label[item].text = "Downloading"
-        if item in self._hover_label:
-            self._hover_center_label[item].text = "Downloading"
-
-    # USED OTHER
-    def _on_download_progress(self, item: AssetDetailItem, progress: float) -> None:
-        if item in self._download_progress_bar:
-            self._download_progress_bar[item].progress = progress
-
-    # USED OTHER
-    def _on_asset_downloaded(self, item: AssetDetailItem, results: Dict):
-        self._download_progress_bar[item].visible = False
-
-        if results.get("status") != omni.client.Result.OK:
-            return
-
-        async def delayed_item_changed(model: AssetStoreModel, item: AssetDetailItem):
-            for _ in range(20):
-                await omni.kit.app.get_app().next_update_async()
-            self.item_changed(model, item)
-
-        url = results.get("url")
-        if url:
-            # Update asset url, type and tips
-            item.url = url
-            self._download_helper.save_download_asset(item.asset_model, url)
-
-            item.asset_type = AssetType.NORMAL
-            if item in self._asset_type_image:
-                (type_image_url, type_image_size) = self._get_asset_type_image(item)
-                self._asset_type_image[item].source_url = type_image_url
-                self._asset_type_image[item].width = ui.Pixel(type_image_size)
-                self._asset_type_image[item].height = ui.Pixel(type_image_size)
-            if item in self._hover_center_label:
-                self._hover_label[item].text = item.tips
-                self._hover_center_label[item].name = item.asset_type
-            if item in self._hover_label:
-                self._hover_center_label[item].text = item.tips
-                self._hover_label[item].name = item.asset_type
-
-            asyncio.ensure_future(self._download_thumbnail(item, url))
-            asyncio.ensure_future(delayed_item_changed(self._model, item))
-            # Cache the Url in case we click away from this grid view
-            self._draggable_urls[item.uid] = url
 
     async def _download_thumbnail(self, item: AssetDetailItem, dest_url: str):
         """Copies the thumbnail for the given asset to the .thumbs subdir."""

@@ -8,6 +8,7 @@
 #
 # Forked from AssetStore AssetStoreModel
 
+import traceback
 import asyncio
 import copy
 import carb
@@ -207,7 +208,7 @@ class AssetStoreModel(AbstractBrowserModel):
 
     def get_sort_args(self) -> Dict:
         """
-        Get sort args to sort detail items. 
+        Get sort args to sort detail items.
         """
         return self._sort_args
 
@@ -308,8 +309,9 @@ class AssetStoreModel(AbstractBrowserModel):
                 try:
                     if query.result():
                         self._more_assets = True
-                except Exception as exc:
-                    carb.log_info(f"Failed to fetch results for {provider}: {type(exc)}, {str(exc)}")
+                except Exception:
+                    carb.log_warn(f"Failed to fetch results for provider {provider}. Reason:")
+                    carb.log_warn(traceback.format_exc())
 
             self._searching = False
             if callback:

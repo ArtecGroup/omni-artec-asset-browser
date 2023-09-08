@@ -136,7 +136,8 @@ class S3Collector(AbstractCollector):
             product_url="",
             price=0,
             thumbnail=default_thumbnail or "",  # Fill it later
-            user=entry.user or "",
+            user=entry.created_by or "",
+            fusions=[]
         )
         self._asset_models.append(asset_model)
         return asset_model

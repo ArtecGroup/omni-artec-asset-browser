@@ -13,7 +13,6 @@ from omni.services.core import main
 
 from ..models import SearchCriteria, _Filter
 from .dummy import DummyAssetStore
-from ..store.json_file import JsonFileAssetStore
 from ..store.base import AssetStoreGroupFacility
 from ..services.asset import router
 
@@ -37,7 +36,6 @@ class TestAssetGroupFacility(omni.kit.test.AsyncTestCaseFailOnLogError):
     async def test_search_multiple_stores(self):
         self._asset_store_group.clear_stores()
         self._asset_store_group.register_store("DUMMY", DummyAssetStore())
-        self._asset_store_group.register_store("NVIDIA", JsonFileAssetStore("NVIDIA", f"{ASSETS_DATA_PATH}/s3.json"))
 
         res = await self._client.assets.search.post(filter={"categories": ["/Vegetation/Plant_Tropical"]})
 
@@ -50,7 +48,6 @@ class TestAssetGroupFacility(omni.kit.test.AsyncTestCaseFailOnLogError):
     async def test_search_specific_store(self):
         self._asset_store_group.clear_stores()
         self._asset_store_group.register_store("DUMMY", DummyAssetStore())
-        self._asset_store_group.register_store("NVIDIA", JsonFileAssetStore("NVIDIA", f"{ASSETS_DATA_PATH}/s3.json"))
 
         res = await self._client.assets.search.post(
             filter={"categories": ["/Vegetation/Plant_Tropical"]}, vendors=["NVIDIA"]
@@ -63,7 +60,6 @@ class TestAssetGroupFacility(omni.kit.test.AsyncTestCaseFailOnLogError):
 
     async def test_page_items(self):
         self._asset_store_group.clear_stores()
-        self._asset_store_group.register_store("NVIDIA", JsonFileAssetStore("NVIDIA", f"{ASSETS_DATA_PATH}/s3.json"))
 
         res = await self._client.assets.search.post(
             filter={"categories": ["/Vegetation/Plant_Tropical"]}, page={"size": 10}
@@ -73,7 +69,6 @@ class TestAssetGroupFacility(omni.kit.test.AsyncTestCaseFailOnLogError):
 
     async def test_page_items_second_page_larger_size(self):
         self._asset_store_group.clear_stores()
-        self._asset_store_group.register_store("NVIDIA", JsonFileAssetStore("NVIDIA", f"{ASSETS_DATA_PATH}/s3.json"))
 
         res = await self._client.assets.search.post(
             filter={"categories": ["/Vegetation/Plant_Tropical"]}, page={"size": 10, "number": 2}
@@ -129,19 +124,3 @@ class TestDummyAssetStore(omni.kit.test.AsyncTestCaseFailOnLogError):
             retrieved_names.append(item.name)
 
         self.assertEqual(retrieved_names, ["car-sedan-3", "car-sedan-2", "car-sedan-1"])
-
-
-class TestJsonAssetStore(omni.kit.test.AsyncTestCaseFailOnLogError):
-    async def test_search_no_criteria(self):
-        store = JsonFileAssetStore("NVIDIA", f"{ASSETS_DATA_PATH}/s3.json")
-
-        (result, *_) = await store.search(search_criteria=SearchCriteria(), search_timeout=60)
-        self.assertEqual(len(result), 50)
-
-    async def test_search_category(self):
-        store = JsonFileAssetStore("NVIDIA", f"{ASSETS_DATA_PATH}/s3.json")
-
-        search = SearchCriteria(filter=_Filter(categories=["/Vegetation/Plant_Tropical"]))
-
-        (result, *_) = await store.search(search_criteria=search, search_timeout=60)
-        self.assertEqual(len(result), 17)

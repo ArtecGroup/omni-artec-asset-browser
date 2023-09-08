@@ -10,25 +10,20 @@
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Tuple, Callable
-import carb
-import carb.settings
-
-import aiohttp
-import aiofiles
-import asyncio
-import glob
-import omni.client
-import omni.kit.asset_converter as converter
+from pathlib import Path
+from typing import Callable, Optional, Tuple, Dict, List
 import tempfile
 import zipfile
 
+import aiohttp
+import aiofiles
+import carb
+import carb.settings
+import omni.client
+import omni.kit.asset_converter as converter
 from urllib.parse import urlparse, urlencode
 
 from artec.services.browser.asset import BaseAssetStore, AssetModel, SearchCriteria, ProviderModel
-
-from pathlib import Path
-
 from .models.asset_fusion import AssetFusion
 
 SETTING_ROOT = "/exts/artec.asset.browser/"
@@ -51,14 +46,6 @@ class ConversionResult:
     download_url: str
 
 
-async def convert(input_asset_path, output_asset_path):
-    task_manager = converter.get_instance()
-    task = task_manager.create_converter_task(input_asset_path, output_asset_path, None)
-    success = await task.wait_until_finished()
-    if not success:
-        carb.log_error(f"Conversion failed. Reason: {task.get_error_message()}")
-
-
 class ArtecCloudAssetProvider(BaseAssetStore):
     def __init__(self) -> None:
         settings = carb.settings.get_settings()
@@ -69,7 +56,7 @@ class ArtecCloudAssetProvider(BaseAssetStore):
         self._search_url = settings.get_as_string(SETTING_ROOT + "cloudSearchUrl")
         self._auth_token = None
         self._authorize_url = settings.get_as_string(SETTING_ROOT + "authorizeUrl")
-        self._auth_params = None
+        self._auth_params: Dict = {}
 
     def provider(self) -> ProviderModel:
         return ProviderModel(
@@ -77,20 +64,14 @@ class ArtecCloudAssetProvider(BaseAssetStore):
         )
 
     def authorized(self) -> bool:
-        if self._auth_params:
-            self._auth_token = self._auth_params.get("auth_token", None)
-            return self._auth_params.get("auth_token", None)
+        return self._auth_token is not None
 
     async def authenticate(self, username: str, password: str):
         params = {"user[email]": username, "user[password]": password}
         async with aiohttp.ClientSession() as session:
             async with session.post(self._authorize_url, params=params) as response:
                 self._auth_params = await response.json()
-
-    def get_access_token(self) -> str:
-        if self._auth_params:
-            return self._auth_params.get("access_token", None)
-        return None
+                self._auth_token = self._auth_params.get("auth_token")
 
     async def _search(self, search_criteria: SearchCriteria) -> Tuple[List[AssetModel], bool]:
         assets: List[AssetModel] = []
@@ -131,6 +112,8 @@ class ArtecCloudAssetProvider(BaseAssetStore):
         return (assets, to_continue)
 
     async def _search_one_page(self, params: Dict) -> Tuple[List[AssetModel], bool]:
+        if not self.authorized():
+            return ([], False)
         items = []
         meta = {}
 
@@ -162,7 +145,7 @@ class ArtecCloudAssetProvider(BaseAssetStore):
                 )
             )
 
-        to_continue = meta.get("total_count") > meta.get("current_page") * meta.get("per_page")
+        to_continue = meta["total_count"] > meta["current_page"] * meta["per_page"]
         return (assets, to_continue)
 
     def url_with_token(self, url: str) -> str:
@@ -171,14 +154,14 @@ class ArtecCloudAssetProvider(BaseAssetStore):
         return url
 
     def destroy(self):
-        self._auth_params = None
+        self._auth_params = {}
 
     async def download(self, fusion: AssetFusion, dest_path: str,
-                       on_progress_fn: Callable[[float], None] = None, timeout: int = 600) -> Dict:
+                       on_progress_fn: Optional[Callable[[float], None]] = None, timeout: int = 600) -> Dict:
         self._download_progress[fusion.name] = 0
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            zip_file_path = f"{tmp_dir}/{fusion.name}.zip"
+            zip_file_path = Path(tmp_dir) / f"{fusion.name}.zip"
             snapshot_group_id = await self._request_model(fusion)
 
             while True:
@@ -193,20 +176,46 @@ class ArtecCloudAssetProvider(BaseAssetStore):
                     return {"url": None, "status": omni.client.Result.ERROR}
 
             # unzip
-            output_path = zip_file_path[:-4]
+            output_path = zip_file_path.parent / fusion.name
             await self._extract_zip(zip_file_path, output_path)
 
-            # convert from OBJ -> USD
-            asset_folder_path = f"{dest_path}/{fusion.name}"
-            obj_path = glob.glob(f"{output_path}\**\*.obj", recursive = True)[0]
-            usd_path = f"{asset_folder_path}/{fusion.name}.usd"
-            await omni.client.create_folder_async(asset_folder_path)
-            await convert(obj_path, usd_path)
+            # convert model
+            asset_folder_path = Path(dest_path) / fusion.name
+            try:
+                obj_path = next(output_path.glob("**/*.obj"))
+            except StopIteration:
+                return {"url": None, "status": omni.client.Result.ERROR}
+            usd_path = asset_folder_path / f"{obj_path.stem}.usd"
+            await omni.client.create_folder_async(str(asset_folder_path))
+            if not await self.convert(obj_path, usd_path):
+                return {"url": None, "status": omni.client.Result.ERROR}
 
-        return {"url": usd_path, "status": omni.client.Result.OK}
+            await self._download_thumbnail(usd_path, fusion.thumbnail_url)
 
-    async def _extract_zip(self, input_path, output_path):
-        await omni.client.create_folder_async(output_path)
+        return {"url": str(usd_path), "status": omni.client.Result.OK}
+
+    async def _download_thumbnail(self, usd_path: Path, thumbnail_url: str):
+        thumbnail_out_dir_path = usd_path.parent / ".thumbs" / "256x256"
+        await omni.client.create_folder_async(str(thumbnail_out_dir_path))
+        thumbnail_out_path = thumbnail_out_dir_path / f"{Path(usd_path).name}.png"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(self.url_with_token(thumbnail_url)) as response:
+                async with aiofiles.open(thumbnail_out_path, "wb") as file:
+                    await file.write(await response.read())
+
+    @staticmethod
+    async def convert(input_asset_path: Path, output_asset_path: Path) -> bool:
+        task_manager = converter.get_instance()
+        task = task_manager.create_converter_task(str(input_asset_path), str(output_asset_path), None)
+        success = await task.wait_until_finished()
+        if not success:
+            carb.log_error(f"Conversion failed. Reason: {task.get_error_message()}")
+            return False
+        return True
+
+    @staticmethod
+    async def _extract_zip(input_path, output_path):
+        await omni.client.create_folder_async(str(output_path))
         with zipfile.ZipFile(input_path, "r") as zip_ref:
             zip_ref.extractall(output_path)
 
