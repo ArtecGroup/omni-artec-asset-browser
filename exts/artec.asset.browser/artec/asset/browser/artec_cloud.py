@@ -200,19 +200,29 @@ class ArtecCloudAssetProvider(BaseAssetStore):
             await self._extract_zip(zip_file_path, output_path)
 
             # convert model
-            asset_folder_path = Path(dest_path) / fusion.name
             try:
                 obj_path = next(output_path.glob("**/*.obj"))
             except StopIteration:
                 return {"url": None, "status": omni.client.Result.ERROR}
-            usd_path = asset_folder_path / f"{obj_path.stem}.usd"
-            await omni.client.create_folder_async(str(asset_folder_path))
+
+            converted_project_path = zip_file_path.parent / f"{obj_path.parent.name}-converted"
+            usd_path = converted_project_path / f"{obj_path.stem}.usd"
+            await omni.client.create_folder_async(str(converted_project_path))
             if not await self.convert(obj_path, usd_path):
                 return {"url": None, "status": omni.client.Result.ERROR}
 
-            await self._download_thumbnail(usd_path, fusion.thumbnail_url)
+            # prepare usdz
+            usdz_path = Path(dest_path) / f"{usd_path.name}z"
+            with zipfile.ZipFile(usdz_path, "w") as archive:
+                # usd file should be first in the USDZ package
+                archive.write(usd_path, arcname=usd_path.name)
+                for file_path in usd_path.parent.glob("**/*"):
+                    if file_path != usd_path:
+                        archive.write(file_path, arcname=file_path.relative_to(usd_path.parent))
 
-        return {"url": str(usd_path), "status": omni.client.Result.OK}
+            await self._download_thumbnail(usdz_path, fusion.thumbnail_url)
+
+        return {"url": str(usdz_path), "status": omni.client.Result.OK}
 
     async def _download_thumbnail(self, usd_path: Path, thumbnail_url: str):
         thumbnail_out_dir_path = usd_path.parent / ".thumbs" / "256x256"
