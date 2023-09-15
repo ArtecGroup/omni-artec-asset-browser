@@ -465,6 +465,7 @@ class AssetStoreModel(AbstractBrowserModel):
         dest_url: str,
         callback: Callable[[Dict], None] = None,
         on_progress_fn: Callable[[float], None] = None,
+        on_prepared_fn: Optional[Callable[[float], None]] = None
     ):
         asset_store = self.get_store(asset.get("vendor"))
         if not asset_store:
@@ -485,7 +486,8 @@ class AssetStoreModel(AbstractBrowserModel):
             user=asset.get("user", ""),
             fusions=asset.get("fusions", ""),
         )
-        results = await asset_store.download(fusion, dest_url, on_progress_fn=on_progress_fn, timeout=600)
+        results = await asset_store.download(fusion, dest_url, on_progress_fn=on_progress_fn,
+                                             timeout=600, on_prepared_fn=on_prepared_fn)
         if results.get("status") != omni.client.Result.OK:
             carb.log_info(f"Failed to download asset from {asset.get('vendor')}.")
         if callback:

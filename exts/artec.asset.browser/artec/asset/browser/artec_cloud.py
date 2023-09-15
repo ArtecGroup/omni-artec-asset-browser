@@ -13,6 +13,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable, Optional, Tuple, Dict, List
 import tempfile
+from time import time
 import zipfile
 
 import aiohttp
@@ -157,21 +158,40 @@ class ArtecCloudAssetProvider(BaseAssetStore):
         self._auth_params = {}
 
     async def download(self, fusion: AssetFusion, dest_path: str,
-                       on_progress_fn: Optional[Callable[[float], None]] = None, timeout: int = 600) -> Dict:
-        self._download_progress[fusion.name] = 0
-
+                       on_progress_fn: Optional[Callable[[float], None]] = None, timeout: int = 600,
+                       on_prepared_fn: Optional[Callable[[float], None]] = None) -> Dict:
         with tempfile.TemporaryDirectory() as tmp_dir:
             zip_file_path = Path(tmp_dir) / f"{fusion.name}.zip"
-            snapshot_group_id = await self._request_model(fusion)
+            snapshot_group_id, eta = await self._request_model(fusion)
+            conversion_start_time = time()
 
             while True:
+                if on_progress_fn:
+                    on_progress_fn(min((time() - conversion_start_time) / eta, 1))
                 conversion_result = await self._check_status(fusion, snapshot_group_id)
                 if conversion_result.status is ConversionTaskStatus.PROCESSED:
+                    if on_prepared_fn:
+                        on_prepared_fn()
                     async with aiohttp.ClientSession() as session:
+                        content = bytearray()
+                        downloaded = 0
                         async with session.get(conversion_result.download_url) as response:
-                            async with aiofiles.open(zip_file_path, "wb") as file:
-                                await file.write(await response.read())
-                            break
+                            size = int(response.headers.get("content-length", 0))
+                            if size > 0:
+                                async for chunk in response.content.iter_chunked(1024 * 512):
+                                    content.extend(chunk)
+                                    downloaded += len(chunk)
+                                    if on_progress_fn:
+                                        on_progress_fn(float(downloaded) / size)
+                            else:
+                                if on_progress_fn:
+                                    on_progress_fn(0)
+                                content = await response.read()
+                                if on_progress_fn:
+                                    on_progress_fn(1)
+                    async with aiofiles.open(zip_file_path, "wb") as file:
+                        await file.write(content)
+                    break
                 elif conversion_result.status is ConversionTaskStatus.FAILED:
                     return {"url": None, "status": omni.client.Result.ERROR}
 
@@ -237,4 +257,4 @@ class ArtecCloudAssetProvider(BaseAssetStore):
         async with aiohttp.ClientSession() as session:
             async with session.get(url=self.url_with_token(fusion.url)) as response:
                 results = await response.json()
-        return results["project"]["snapshot_group_id"]
+        return results["project"]["snapshot_group_id"], results["project"]["eta"]

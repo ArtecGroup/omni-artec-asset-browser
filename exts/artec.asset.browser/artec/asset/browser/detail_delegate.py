@@ -16,6 +16,7 @@ import omni.kit.app
 from omni.kit.browser.core import DetailDelegate, DetailItem, create_drop_helper
 from omni.kit.window.filepicker import FilePickerDialog
 from .models import AssetStoreModel, AssetDetailItem, AssetType, MoreDetailItem, SearchingDetailItem, AssetFusion
+from .models.asset_detail_item import ASSET_TIPS
 from .hover_window import HoverWindow
 from .auth_dialog import AuthDialog
 from .download_progress_bar import DownloadProgressBar
@@ -494,27 +495,34 @@ class AssetDetailDelegate(DetailDelegate):
                     fusion,
                     fusion.asset.asset_model,
                     url,
-                    callback=partial(self._on_fusion_asset_downloaded, fusion),
-                    on_progress_fn=partial(self._on_fusion_download_progress, fusion),
+                    callback=partial(self._on_fusion_asset_downloaded, fusion.asset),
+                    on_progress_fn=partial(self._on_fusion_download_progress, fusion.asset),
+                    on_prepared_fn=lambda: self._on_fusion_asset_prepared(fusion.asset)
                 )
             )
 
-        if self._download_progress_bar.get(fusion):
-            self._download_progress_bar[fusion].visible = True
+        if self._download_progress_bar.get(fusion.asset):
+            self._download_progress_bar[fusion.asset].visible = True
 
         if fusion.asset in self._hover_center_label:
-            self._hover_label[fusion.asset].text = "Downloading"
+            self._hover_label[fusion.asset].text = "Preparing"
         if fusion.asset in self._hover_label:
-            self._hover_center_label[fusion.asset].text = "Downloading"
+            self._hover_center_label[fusion.asset].text = "Preparing"
 
-    def _on_fusion_download_progress(self, fusion: AssetFusion, progress: float) -> None:
-        if fusion in self._download_progress_bar:
-            self._download_progress_bar[fusion].progress = progress
+    def _on_fusion_asset_prepared(self, item: AssetDetailItem):
+        if item in self._hover_center_label:
+            self._hover_label[item].text = "Downloading"
+        if item in self._hover_label:
+            self._hover_center_label[item].text = "Downloading"
 
-    def _on_fusion_asset_downloaded(self, fusion: AssetFusion, results: Dict):
+    def _on_fusion_download_progress(self, item: AssetDetailItem, progress: float) -> None:
+        if item in self._download_progress_bar:
+            self._download_progress_bar[item].progress = progress
+
+    def _on_fusion_asset_downloaded(self, item: AssetDetailItem, results: Dict):
         self._add_to_my_assets(results["url"])
-        if self._download_progress_bar.get(fusion):
-            self._download_progress_bar[fusion].visible = False
+        if self._download_progress_bar.get(item):
+            self._download_progress_bar[item].visible = False
 
         if results.get("status") != omni.client.Result.OK:
             return
@@ -527,8 +535,12 @@ class AssetDetailDelegate(DetailDelegate):
 
         url = results.get("url")
         if url:
-            item = fusion.asset
             asyncio.ensure_future(delayed_item_changed(self._model, item))
+
+        if item in self._hover_center_label:
+            self._hover_label[item].text = ASSET_TIPS[AssetType.DOWNLOAD]
+        if item in self._hover_label:
+            self._hover_center_label[item].text = ASSET_TIPS[AssetType.DOWNLOAD]
 
     async def _download_thumbnail(self, item: AssetDetailItem, dest_url: str):
         """Copies the thumbnail for the given asset to the .thumbs subdir."""
