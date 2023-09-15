@@ -194,8 +194,13 @@ class AssetDetailDelegate(DetailDelegate):
 
     def on_double_click(self, item: AssetDetailItem) -> None:
         if isinstance(item, AssetDetailItem):
-            if item.asset_type == AssetType.EXTERNAL_LINK or item.asset_type == AssetType.DOWNLOAD:
+            if item.asset_type == AssetType.EXTERNAL_LINK:
                 webbrowser.open(item.asset_model["product_url"])
+            elif item.asset_type == AssetType.DOWNLOAD:
+                fusion = AssetFusion(item, item.asset_model['name'],
+                                     item.asset_model['download_url'],
+                                     item.asset_model["thumbnail"])
+                self.download_fusion(fusion)
             elif item.asset_type == AssetType.NORMAL:
                 return super().on_double_click(item)
         else:
@@ -217,18 +222,6 @@ class AssetDetailDelegate(DetailDelegate):
             if show_web:
                 self._context_menu = ui.Menu("Asset browser context menu")
                 with self._context_menu:
-                    if item.asset_model.get("fusions"):
-                        with ui.Menu("Download"):
-                            for fusion_info in item.asset_model.get("fusions"):
-                                fusion = AssetFusion(item, fusion_info['name'],
-                                                     fusion_info['download_url'],
-                                                     fusion_info["preview_url"])
-                                ui.MenuItem(
-                                    fusion.name,
-                                    triggered_fn=partial(self.download_fusion, fusion)
-                                )
-                                ui.Separator()
-
                     if show_web:
                         ui.MenuItem(
                             "Open in Web Browser",

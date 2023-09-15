@@ -81,7 +81,7 @@ class ArtecCloudAssetProvider(BaseAssetStore):
             "sort_field": "",
             "sort_direction": "",
             "term": "",
-            "filters": "",
+            "slug": "",
             "per_page": self._max_count_per_page,
             "page": 0,
         }
@@ -95,7 +95,7 @@ class ArtecCloudAssetProvider(BaseAssetStore):
         if search_criteria.filter.categories:
             category = search_criteria.filter.categories[-1]
             if category:
-                params["filters"] = category.lower().replace(" ", "_")
+                params["slug"] = category
 
         to_continue = True
         while to_continue:

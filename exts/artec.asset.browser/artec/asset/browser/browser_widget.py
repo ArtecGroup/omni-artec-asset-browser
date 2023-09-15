@@ -312,7 +312,6 @@ class ArtecCloudBrowserWidget(BrowserWidget):
     ) -> None:
         if reset:
             self._begin_search()
-
             self._browser_model.reset_assets()
             self._detail_view.model._item_changed(None)
         else:

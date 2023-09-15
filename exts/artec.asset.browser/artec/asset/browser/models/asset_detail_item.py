@@ -33,7 +33,7 @@ class AssetType:
 
 ASSET_TIPS = {
     AssetType.EXTERNAL_LINK: "DOUBLE CLICK FOR\nEXTERNAL LINK",  # Artec Cloud provides external links
-    AssetType.DOWNLOAD: "DOUBLE CLICK FOR\nEXTERNAL LINK",  # Default action for download type is to open
+    AssetType.DOWNLOAD: "DOUBLE CLICK TO\nDOWNLOAD",  # Default action for download type is to open
     AssetType.NORMAL: "DRAG INTO\nVIEWPORT",
     AssetType.UNKNOWN: "",
 }
@@ -58,16 +58,17 @@ class AssetDetailItem(DetailItem):
         return ASSET_TIPS[self.asset_type]
 
     def _get_type(self):
+        download_url = self.asset_model["download_url"].split("?")[0]
         if self._local_url:
             self.asset_type = AssetType.NORMAL
-        elif self.asset_model["download_url"]:
-            if self._is_local_path(self.asset_model["download_url"]):
+        elif download_url:
+            if self._is_local_path(download_url):
                 # For local assets, drag and drop into viewport
                 self.asset_type = AssetType.NORMAL
             elif (
-                self.asset_model["download_url"].lower().endswith("usdz")
-                or self.asset_model["download_url"].lower().endswith("zip")
-                or self.asset_model["download_url"].lower().endswith("download")
+                download_url.lower().endswith("usdz")
+                or download_url.lower().endswith("zip")
+                or download_url.lower().endswith("download")
             ):
                 self.asset_type = AssetType.DOWNLOAD
             else:
