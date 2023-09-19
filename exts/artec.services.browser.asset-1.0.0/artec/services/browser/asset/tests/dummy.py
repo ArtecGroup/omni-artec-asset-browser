@@ -7,7 +7,7 @@
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
 from ..models import AssetModel
 
-from ..store import StaticAssetStore
+from ..store.local import StaticAssetStore
 
 
 class DummyAssetStore(StaticAssetStore):

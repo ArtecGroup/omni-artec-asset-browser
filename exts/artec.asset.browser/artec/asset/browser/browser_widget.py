@@ -70,7 +70,7 @@ class ArtecCloudBrowserWidget(BrowserWidget):
     def authorized(self) -> bool: # WIP working
         provider = self._browser_model.artec_cloud_provider()
         return provider.authorized()
-    
+
     def _build_results(self): # FIXME use other method
         self.filter_details(None)
 
@@ -87,8 +87,8 @@ class ArtecCloudBrowserWidget(BrowserWidget):
                 asyncio.ensure_future(
                     self._browser_model.authenticate_async(
                         self._browser_model.artec_cloud_provider_id,
-                        dialog.username, 
-                        dialog.password, 
+                        dialog.username,
+                        dialog.password,
                         lambda: check_authorized(self, dialog)
                     )
                 )
@@ -106,6 +106,7 @@ class ArtecCloudBrowserWidget(BrowserWidget):
             )
 
     def _build_right_panel(self):
+        self.trigger_authenticate()
         with ui.ZStack():
             self._build_detail_panel()
 
@@ -115,8 +116,6 @@ class ArtecCloudBrowserWidget(BrowserWidget):
         auto_scroll = carb.settings.get_settings().get(SETTING_AUTO_SCROLL)
         if auto_scroll:
             self._detail_scrolling_frame.set_scroll_y_changed_fn(self._on_detail_scroll_y_changed)
-        
-        self.trigger_authenticate()
 
     def _build_detail_panel(self):
         # Add search bar
@@ -313,7 +312,6 @@ class ArtecCloudBrowserWidget(BrowserWidget):
     ) -> None:
         if reset:
             self._begin_search()
-
             self._browser_model.reset_assets()
             self._detail_view.model._item_changed(None)
         else:

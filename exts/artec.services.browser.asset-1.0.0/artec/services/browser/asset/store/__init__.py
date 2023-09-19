@@ -7,5 +7,4 @@
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
 
 from .base import BaseAssetStore
-from .static import StaticAssetStore
-from .json_file import JsonFileAssetStore
+from .local import LocalFolderAssetProvider

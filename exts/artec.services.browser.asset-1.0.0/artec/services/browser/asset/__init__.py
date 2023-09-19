@@ -7,5 +7,5 @@
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
 from .extension import AssetServiceExtension, get_instance
 from .models import AssetModel, SearchCriteria, ProviderModel
-from .store import BaseAssetStore, StaticAssetStore, JsonFileAssetStore
+from .store import BaseAssetStore, LocalFolderAssetProvider
 from .collector import S3Collector

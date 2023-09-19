@@ -8,6 +8,7 @@
 #
 # Forked from AssetStore AssetStoreModel
 
+import traceback
 import asyncio
 import copy
 import carb
@@ -26,6 +27,7 @@ from pxr import Tf
 from .asset_store_client import AssetStoreClient
 from .asset_detail_item import AssetDetailItem, MoreDetailItem, SearchingDetailItem
 from .main_navigation_item import MainNavigationItem
+from .asset_fusion import AssetFusion
 from .common_categories import COMMON_CATEGORIES
 
 SETTING_ROOT = "/exts/artec.asset.browser/"
@@ -148,6 +150,14 @@ class AssetStoreModel(AbstractBrowserModel):
         # All
         self._category_items.insert(0, self._create_category_item(CATEGORY_ANY, None, list(self.providers.keys())))
 
+        # Cloud projects
+        self.cloud_projects_category_item = self._create_category_item("cloud projects", None, self.artec_cloud_provider_id)
+        self._category_items.insert(2, self.cloud_projects_category_item)
+
+        # Add dummy category to cloud projects to make it expandable
+        self._dummy_category_item = CategoryItem("")
+        self.cloud_projects_category_item.children.append(self._dummy_category_item)
+
         return self._category_items
 
     def get_detail_items(self, item: CategoryItem) -> List[DetailItem]:
@@ -206,7 +216,7 @@ class AssetStoreModel(AbstractBrowserModel):
 
     def get_sort_args(self) -> Dict:
         """
-        Get sort args to sort detail items. 
+        Get sort args to sort detail items.
         """
         return self._sort_args
 
@@ -233,7 +243,7 @@ class AssetStoreModel(AbstractBrowserModel):
 
         pos = category_url.rfind("/")
         # Create new category item
-        category_item = self._create_category_item(category_url[pos + 1 :], category_url, provider_name)
+        category_item = self._create_category_item(category_url[pos + 1:], category_url, provider_name)
         if pos < 0:
             # Root category
             if root:
@@ -246,9 +256,8 @@ class AssetStoreModel(AbstractBrowserModel):
 
         return category_item
 
-    def _create_category_item(
-        self, category_name: str, category_url: Optional[str], provider_name: str
-    ) -> MainNavigationItem:
+    def _create_category_item(self, category_name: str, category_url: Optional[str],
+                              provider_name: str) -> MainNavigationItem:
         category_item = MainNavigationItem(category_name, category_url, provider_name)
 
         self._cached_catetory_items[category_url] = category_item
@@ -307,8 +316,9 @@ class AssetStoreModel(AbstractBrowserModel):
                 try:
                     if query.result():
                         self._more_assets = True
-                except Exception as exc:
-                    carb.log_info(f"Failed to fetch results for {provider}: {type(exc)}, {str(exc)}")
+                except Exception:
+                    carb.log_warn(f"Failed to fetch results for provider {provider}. Reason:")
+                    carb.log_warn(traceback.format_exc())
 
             self._searching = False
             if callback:
@@ -335,19 +345,29 @@ class AssetStoreModel(AbstractBrowserModel):
             providers=providers,
         )
         if assets:
-            # Filter duplicated results (happended in sketchfab)
-            filter_assets = []
-            [
-                filter_assets.append(asset)
-                for asset in assets
-                if not asset in filter_assets and not asset in self._assets
-            ]
+            # Filter duplicated results
+            new_assets = []
+            for asset in assets:
+                if asset not in self._assets + new_assets:
+                    new_assets.append(asset)
 
             # Sort new results
-            filter_assets.sort(**self._sort_args)
-            self._assets.extend(filter_assets)
+            new_assets.sort(**self._sort_args)
 
-            carb.log_info(f"  {len(assets)} returned, {len(filter_assets)} valid, total {len(self._assets)}")
+            # Add as a sub-categories to cloud projects category
+            self._add_assets_to_cloud_projects_category(new_assets)
+
+            # Unpack cloud projects
+            assets_to_add = []
+            for asset in new_assets:
+                if asset.get("vendor") == self.artec_cloud_provider_id:
+                    assets_to_add.extend(self._extract_fusions_from_artec_cloud_project(asset))
+                else:
+                    assets_to_add.append(asset)
+
+            self._assets.extend(assets_to_add)
+
+            carb.log_info(f"  {len(assets)} projects returned, {len(assets_to_add)} assets added, total {len(self._assets)}")
 
             if not single_step and more_assets:
                 self._more_assets = True
@@ -359,6 +379,47 @@ class AssetStoreModel(AbstractBrowserModel):
                 callback()
 
         return more_assets
+
+    def _add_assets_to_cloud_projects_category(self, assets):
+        for asset in assets:
+            if asset.get("vendor") != self.artec_cloud_provider_id:
+                continue
+            if any(child.name == asset.get("name") for child in self.cloud_projects_category_item.children):
+                continue
+            category_url = asset.get("product_url").split("/")[-1]
+            item = self._create_category_item(asset.get("name"), category_url,
+                                              self.artec_cloud_provider_id)
+            self.cloud_projects_category_item.children.append(item)
+
+        if (self._dummy_category_item in self.cloud_projects_category_item.children
+                and len(self.cloud_projects_category_item.children) > 1):
+            self.cloud_projects_category_item.children.remove(self._dummy_category_item)
+
+    def _extract_fusions_from_artec_cloud_project(self, project_asset):
+        asset_store = self.get_store(project_asset["vendor"])
+
+        fusion_assets = []
+        for fusion_data in project_asset.get("fusions", []):
+            thumbnail_url = fusion_data["preview_url"]
+            if asset_store is not None:
+                thumbnail_url = asset_store.url_with_token(thumbnail_url)
+            categories = project_asset.get("categories", []).copy()
+            slug = project_asset.get("product_url").split("/")[-1]
+            categories.append(slug)
+            fusion_assets.append(
+                {
+                    "identifier": fusion_data["fusion_id"],
+                    "name": fusion_data["name"],
+                    "download_url": fusion_data["download_url"],
+                    "thumbnail": thumbnail_url,
+                    "vendor": project_asset["vendor"],
+                    "user": project_asset["user"],
+                    "categories": categories,
+                    "fusions": [],
+                    "product_url": project_asset["product_url"]
+                }
+            )
+        return fusion_assets
 
     async def list_categories_async(self):
         self._categories = await self._store_client.list_categories_async()
@@ -397,12 +458,14 @@ class AssetStoreModel(AbstractBrowserModel):
         if callback:
             callback()
 
-    async def download_async(
+    async def download_fusion_async(
         self,
+        fusion: AssetFusion,
         asset: Dict,
         dest_url: str,
         callback: Callable[[Dict], None] = None,
         on_progress_fn: Callable[[float], None] = None,
+        on_prepared_fn: Optional[Callable[[float], None]] = None
     ):
         asset_store = self.get_store(asset.get("vendor"))
         if not asset_store:
@@ -421,8 +484,10 @@ class AssetStoreModel(AbstractBrowserModel):
             price=asset.get("price", 0.0),
             thumbnail=asset.get("thumbnail", ""),
             user=asset.get("user", ""),
+            fusions=asset.get("fusions", ""),
         )
-        results = await asset_store.download(asset_model, dest_url, on_progress_fn=on_progress_fn, timeout=600)
+        results = await asset_store.download(fusion, dest_url, on_progress_fn=on_progress_fn,
+                                             timeout=600, on_prepared_fn=on_prepared_fn)
         if results.get("status") != omni.client.Result.OK:
             carb.log_info(f"Failed to download asset from {asset.get('vendor')}.")
         if callback:

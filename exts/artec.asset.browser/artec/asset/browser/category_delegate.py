@@ -38,19 +38,17 @@ class MainNavigationDelegate(CategoryDelegate):
             level (int): ignore
             expand (int): ignore
         """
-        if item.configurable:
-            with ui.HStack():
-                ui.Label(
-                    self.get_label(item),
-                    width=0,
-                    alignment=ui.Alignment.LEFT_CENTER,
-                    style_type_name_override="TreeView.Item.Name",
-                )
-                ui.Spacer()
-                # with ui.VStack():
-                #    ui.Spacer()
-                #    ui.Image(f"{ICON_PATH}/options.svg", width=12, height=12, style_type_name_override="TreeView.Item.Image", mouse_pressed_fn=lambda x, y, btn, flag, item=item: self._on_config(item))
-                #    ui.Spacer()
+        with ui.HStack():
+            if self._tree_mode:
+                ui.Label("  " * level, width=0)
+            ui.Label(
+                self.get_label(item),
+                width=0,
+                alignment=ui.Alignment.LEFT_CENTER,
+                style_type_name_override="TreeView.Item.Name",
+            )
+            ui.Spacer()
+            if item.configurable:
                 ui.Button(
                     "",
                     width=16,
@@ -58,9 +56,34 @@ class MainNavigationDelegate(CategoryDelegate):
                     clicked_fn=lambda model=model, item=item: self._on_config(model, item),
                     style_type_name_override="TreeView.Item.Button",
                 )
+
+    def build_branch(
+        self,
+        model: ui.AbstractItemModel,
+        item: CategoryItem,
+        column_id: int = 0,
+        level: int = 0,
+        expanded: bool = False,
+    ):
+        """
+        Create a branch widget that opens or closes subtree
+        Args:
+            model (AbstractItemModel): Category data model
+            item (CategoryItem): Category item
+            column_id (int): ignore
+            level (int): ignore
+            expand (int): ignore
+        """
+        if not self._tree_mode or len(item.children) == 0:
+            # In tree mode, if have children, show as branch
             return
 
-        super().build_widget(model, item, index=index, level=level, expanded=expanded)
+        with ui.HStack(height=20, spacing=5):
+            ui.Label("  " * level, width=0)
+            if expanded:
+                ui.Label("- ", width=5)
+            else:
+                ui.Label("+ ", width=5)
 
     def _on_config(self, model: AssetStoreModel, item: MainNavigationItem) -> None:
         # Here item name is provider id

@@ -10,6 +10,7 @@
 
 import abc
 import asyncio
+import traceback
 import omni.client
 import zipfile
 
@@ -215,7 +216,8 @@ class AssetStoreGroupFacility(Facility):
         for store, query in queries.items():
             try:
                 results[store] = query.result()
-            except Exception as exc:
-                carb.log_info(f"Failed to fetch results for {store}: {type(exc)}, {str(exc)}")
+            except Exception:
+                carb.log_warn(f"Failed to fetch results for store {store}. Reason:")
+                carb.log_warn(traceback.format_exc())
 
         return results

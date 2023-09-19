@@ -20,7 +20,7 @@ from artec.services.browser.asset import AssetModel
 
 class AssetStoreClient:
     """
-    Represent client to asset store service. 
+    Represent client to asset store service.
     Args:
         url: Asset service url
     """
