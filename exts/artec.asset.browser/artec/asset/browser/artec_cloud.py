@@ -254,14 +254,14 @@ class ArtecCloudAssetProvider(BaseAssetStore):
             "auth_token": self._auth_token,
             "snapshot_group_id": snapshot_group_id
         }
-        slug = fusion.asset.asset_model["product_url"].split("/")[-1]
-        url = f"https://staging-cloud.artec3d.com/api/omni/1.0/projects/{slug}/conversion_status"
+        url = f"{'/'.join(fusion.url.split('/')[:-1])}/conversion_status"
         async with aiohttp.ClientSession() as session:
             async with session.get(url=url, params=params) as response:
                 decoded_response = await response.json()
-        result = ConversionResult(ConversionTaskStatus(int(decoded_response["project"]["conversion_status"])),
-                                  decoded_response["project"]["download_url"])
-        return result
+        if response.status != 200:
+            return ConversionResult(ConversionTaskStatus.FAILED, "")
+        status = ConversionTaskStatus(int(decoded_response["project"]["conversion_status"]))
+        return ConversionResult(status, decoded_response["project"]["download_url"])
 
     async def _request_model(self, fusion: AssetFusion):
         async with aiohttp.ClientSession() as session:

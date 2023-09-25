@@ -489,6 +489,7 @@ class AssetStoreModel(AbstractBrowserModel):
         results = await asset_store.download(fusion, dest_url, on_progress_fn=on_progress_fn,
                                              timeout=600, on_prepared_fn=on_prepared_fn)
         if results.get("status") != omni.client.Result.OK:
-            carb.log_info(f"Failed to download asset from {asset.get('vendor')}.")
+            carb.log_warn(f"Failed to download asset from {asset.get('vendor')}.")
+            return
         if callback:
             callback(results)
