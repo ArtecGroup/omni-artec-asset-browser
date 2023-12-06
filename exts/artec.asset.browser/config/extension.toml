@@ -1,6 +1,6 @@
 [package]
 # Semantic Versionning is used: https://semver.org/
-version = "1.0.2"
+version = "1.0.5"
 
 # Lists people or organizations that are considered the "authors" of the package.
 authors = ["Artec"]
@@ -26,7 +26,7 @@ icon = "data/artec_cloud.png"
 
 [dependencies]
 "omni.kit.browser.core" = {version="2.1.5"}
-"artec.services.browser.asset" = {version="1.0.0"}
+"artec.services.browser.asset" = {version="1.0.5"}
 "omni.usd" = {}
 "omni.services.client" = {version="0.4.0"}
 "omni.kit.window.content_browser" = { optional=true }
